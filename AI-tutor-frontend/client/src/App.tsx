@@ -77,7 +77,8 @@ function App() {
       abortControllerRef.current = new AbortController();
       const signal = abortControllerRef.current.signal;
 
-      const res = await axios.post("http://10.164.18.48:8000/query", {
+      // const res = await axios.post("http://10.164.18.48:8000/query", {
+      const res = await axios.post("http://a100-f-01.ai.deakin.edu.au:8000/query", {
         query: message,
         size: 5,
         session_id: sessionId,

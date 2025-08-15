@@ -1,0 +1,22 @@
+# Ignore local configurations and secrets
+start_backend.sh
+start_frontend.sh
+
+# Python
+__pycache__/
+*.pyc
+
+# Database files
+*.sqlite3
+
+# Chat history
+AI-Tutor/chat_history.json
+AI-Tutor/chat_history_single_Query.json
+
+# Local development tools
+auto_rsync.sh
+
+# IDE/Editor specific
+.vscode/
+.idea/
+*.swp

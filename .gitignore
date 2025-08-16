@@ -20,3 +20,6 @@ auto_rsync.sh
 .vscode/
 .idea/
 *.swp
+
+# Notes about how the app works
+_my_notes/

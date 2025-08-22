@@ -1,6 +1,10 @@
-# Ignore local configurations and secrets
+# Start scripts
 start_backend.sh
 start_frontend.sh
+persistent_start_backend.sh
+persistent_start_frontend.sh
+persistent_start_all.sh
+start_watchmedo.sh
 
 # Python
 __pycache__/
@@ -23,3 +27,9 @@ auto_rsync.sh
 
 # Notes about how the app works
 _my_notes/
+
+# My test files and info
+_my_tests/
+measurement_system.py
+test_runner.py
+start_multi_for_testing.sh

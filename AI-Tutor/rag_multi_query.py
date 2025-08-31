@@ -1,20 +1,9 @@
-"""
-Multi-turn RAG backend for Deakin AI-Tutor
-------------------------------------------
-
-• Same model/embedding/vector-DB settings as rag_single_query.py
-• Adds ConversationBufferWindowMemory for chat history
-• One chain per session to avoid user-data bleeding
-"""
-
 from __future__ import annotations
 
-import asyncio
 import logging
 import threading
 import traceback
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from typing import Dict, List, Optional
 
@@ -26,24 +15,26 @@ from sentence_transformers import SentenceTransformer
 
 from langchain_community.llms import VLLM
 from langchain_community.vectorstores import Chroma
-from langchain.chains import LLMChain
+from langchain_core.documents import Document
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import Runnable
 from langchain.embeddings.base import Embeddings
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.prompts import PromptTemplate
-from langchain.schema import HumanMessage, AIMessage
-
+from langchain.schema import AIMessage, HumanMessage
 
 # --------------------------------------------------------------------------- #
 # Configuration                                                               #
 # --------------------------------------------------------------------------- #
 class CFG:
+    """Configuration settings for the AI Tutor backend."""
     # Model settings
     MODEL_NAME = "microsoft/phi-4"
     EMBEDDING_MODEL = "nomic-ai/nomic-embed-text-v1.5"
     PERSIST_DIR = "./RL_db_reference_1k_500"
     
     # Generation parameters
-    MAX_NEW_TOKENS = 1024 # 3-4 paragraphs of text
+    MAX_NEW_TOKENS = 1024  # 3-4 paragraphs of text
     TEMPERATURE = 0.2
     TOP_P = 0.9
     GPU_FRACTION = 0.5
@@ -51,9 +42,6 @@ class CFG:
     # Retrieval & memory
     DEFAULT_K = 5
     MEMORY_TURNS = 10
-    
-    # Performance
-    THREAD_WORKERS = 4
     
     # Timeout settings
     REQUEST_TIMEOUT = 300.0  # 5 minutes
@@ -66,14 +54,17 @@ logging.basicConfig(
     level=logging.INFO, 
     format="%(asctime)s | %(name)s | %(levelname)s | %(message)s"
 )
-log = logging.getLogger("ai-tutor-multi")
+log = logging.getLogger("ai-tutor-lcel")
 
 
 # --------------------------------------------------------------------------- #
 # Embeddings                                                                  #
 # --------------------------------------------------------------------------- #
 class SentenceTransformerEmbeddings(Embeddings):
-    """Optimized embedding wrapper for SentenceTransformer."""
+    """
+    Optimized embedding wrapper for SentenceTransformer, following best
+    practices for models like nomic-embed-text.
+    """
     
     def __init__(self, model_name: str = CFG.EMBEDDING_MODEL, batch_size: int = 64):
         super().__init__()
@@ -88,6 +79,7 @@ class SentenceTransformerEmbeddings(Embeddings):
         )
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """Embeds documents with a prefix for retrieval-focused tasks."""
         prefixed = [f"search_document: {text}" for text in texts]
         return self.model.encode(
             prefixed, 
@@ -96,6 +88,7 @@ class SentenceTransformerEmbeddings(Embeddings):
         ).tolist()
 
     def embed_query(self, text: str) -> List[float]:
+        """Embeds a single query with a prefix for retrieval-focused tasks."""
         return self.model.encode(
             f"search_query: {text}", 
             convert_to_tensor=False
@@ -111,10 +104,10 @@ course context, chat history, and a student question.
 
 1. Use ONLY the context and history to answer factually and clearly.
 2. Stay concise and on-topic.
-3. If question is outside the context, give a brief overview answer and do not hallucinate.
+3. If the question is outside the context, give a brief overview answer and do not hallucinate.
 4. After the answer, provide a list of relevant weeks or slides in square brackets,
    e.g., Related material: [week 1, week 2]. Do NOT reveal full document text.
-5. If malicious or sensitive, REFUSE.
+5. If the question is malicious or sensitive, REFUSE to answer.
 
 <|im_start|>user<|im_sep|>
 Conversation history:
@@ -137,13 +130,13 @@ PROMPT = PromptTemplate(
 
 
 # --------------------------------------------------------------------------- #
-# Multi-turn Manager                                                          #
+# Multi-turn Manager with LCEL                                                #
 # --------------------------------------------------------------------------- #
 class MultiTurnManager:
-    """Manages LLM, vectorstore, and per-session memory."""
+    """Manages the LLM, vectorstore, and per-session memory using LCEL."""
 
     def __init__(self):
-        log.info("Initializing multi-turn RAG system...")
+        log.info("Initializing multi-turn RAG system with LCEL...")
         
         # Initialize LLM
         self.llm = VLLM(
@@ -163,22 +156,20 @@ class MultiTurnManager:
             persist_directory=CFG.PERSIST_DIR,
             embedding_function=self.embeddings,
         )
-        log.info("✅ Vectorstore ready")
+        self.retriever = self.vdb.as_retriever()
+        log.info("✅ Vectorstore and retriever ready")
 
-        # LLM chain
-        self.chain = LLMChain(llm=self.llm, prompt=PROMPT)
+        # Define the primary chain using LangChain Expression Language (LCEL)
+        self.chain: Runnable = PROMPT | self.llm | StrOutputParser()
         
         # Session management
         self._memories: Dict[str, ConversationBufferWindowMemory] = {}
         self._locks: Dict[str, threading.Lock] = defaultdict(threading.Lock)
         
-        # Thread pool for async retrieval
-        self.executor = ThreadPoolExecutor(max_workers=CFG.THREAD_WORKERS)
-        
-        log.info("✅ Multi-turn system ready")
+        log.info("✅ Multi-turn LCEL system ready")
 
     def _get_memory(self, session_id: str) -> ConversationBufferWindowMemory:
-        """Thread-safe session memory factory."""
+        """Thread-safe factory for session-specific memory."""
         with self._locks[session_id]:
             if session_id not in self._memories:
                 self._memories[session_id] = ConversationBufferWindowMemory(
@@ -186,21 +177,17 @@ class MultiTurnManager:
                     memory_key="chat_history",
                     return_messages=True,
                 )
-                log.info(f"Created memory for session {session_id[:8]}...")
+                log.info(f"Created new memory for session {session_id[:8]}...")
             return self._memories[session_id]
 
-    async def _retrieve_docs(self, question: str, k: int = CFG.DEFAULT_K) -> str:
-        """Async document retrieval."""
-        loop = asyncio.get_event_loop()
-        docs = await loop.run_in_executor(
-            self.executor,
-            lambda: self.vdb.similarity_search(question, k=k)
-        )
+    @staticmethod
+    def _format_docs(docs: List[Document]) -> str:
+        """Joins document contents into a single string for context."""
         return "\n\n".join(doc.page_content for doc in docs)
-
+        
     @staticmethod
     def _format_history(messages: List) -> str:
-        """Format chat history for prompt."""
+        """Formats chat history into a human-readable string for the prompt."""
         if not messages:
             return "No previous conversation."
         
@@ -214,41 +201,43 @@ class MultiTurnManager:
         return "\n".join(lines)
 
     async def ask(self, question: str, session_id: str, k: Optional[int] = None) -> str:
-        """Generate response with memory."""
+        """
+        Handles a user query by retrieving context, incorporating memory,
+        and generating a response using the LCEL chain.
+        """
         try:
-            # Get session memory
+            # 1. Get session-specific memory
             memory = self._get_memory(session_id)
             
-            # Retrieve documents (async)
-            context = await self._retrieve_docs(question, k or CFG.DEFAULT_K)
+            # 2. Retrieve relevant documents asynchronously
+            search_k = k or CFG.DEFAULT_K
+            docs = await self.retriever.aget_relevant_documents(question, k=search_k)
             
-            # Format chat history
+            context = self._format_docs(docs)
+            
+            # 3. Load and format chat history
             memory_vars = memory.load_memory_variables({})
-            history = self._format_history(memory_vars.get("chat_history", []))
+            history_messages = memory_vars.get("chat_history", [])
+            history = self._format_history(history_messages)
             
-            log.info(f"Session {session_id[:8]}: {len(memory_vars.get('chat_history', []))} previous messages")
+            log.info(f"Session {session_id[:8]}: {len(history_messages)} previous messages. Retrieving {search_k} docs.")
             
-            # Generate response
-            response = await self.chain.arun(
-                context=context,
-                question=question,
-                chat_history=history
-            )
+            # 4. Invoke the LCEL chain with all necessary inputs
+            response = await self.chain.ainvoke({
+                "context": context,
+                "question": question,
+                "chat_history": history
+            })
             
-            # Save to memory
+            # 5. Save the new interaction to memory
             memory.save_context({"input": question}, {"output": response})
             
             return response
             
         except Exception as e:
-            log.error(f"Failed to generate response: {e}")
+            log.error(f"Failed to generate response for session {session_id[:8]}: {e}")
             log.error(traceback.format_exc())
-            return "I'm experiencing technical difficulties. Please try again."
-
-    def __del__(self):
-        """Cleanup on deletion."""
-        if hasattr(self, 'executor'):
-            self.executor.shutdown(wait=True)
+            return "I'm experiencing some technical difficulties at the moment. Please try your question again."
 
 
 # --------------------------------------------------------------------------- #
@@ -256,7 +245,21 @@ class MultiTurnManager:
 # --------------------------------------------------------------------------- #
 manager: Optional[MultiTurnManager] = None
 
-app = FastAPI(title="AI-Tutor Multi-turn", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifecycle management."""
+    global manager
+    log.info("Application starting up...")
+    manager = MultiTurnManager()
+    yield
+    log.info("Application shutting down.")
+    # No manual executor shutdown needed anymore
+
+app = FastAPI(
+    title="AI-Tutor Multi-turn (LCEL)", 
+    version="2.0.0",
+    lifespan=lifespan
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -266,20 +269,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifecycle management."""
-    global manager
-    manager = MultiTurnManager()
-    yield
-    if manager and hasattr(manager, 'executor'):
-        manager.executor.shutdown(wait=True)
-
-
-app.router.lifespan_context = lifespan
-
-
 # --------------------------------------------------------------------------- #
 # API Models & Routes                                                         #
 # --------------------------------------------------------------------------- #
@@ -288,50 +277,41 @@ class QueryRequest(BaseModel):
     session_id: str
     k: Optional[int] = None
 
-
 class QueryResponse(BaseModel):
     response: str
     session_id: str
 
-
-@app.get("/health")
+@app.get("/health", summary="Health Check")
 async def health():
-    """Health check endpoint."""
+    """Provides the operational status of the service."""
     return {
         "status": "ok" if manager else "initializing",
         "model": CFG.MODEL_NAME,
         "memory_turns": CFG.MEMORY_TURNS
     }
 
-
-@app.post("/query", response_model=QueryResponse)
+@app.post("/query", response_model=QueryResponse, summary="Process a User Query")
 async def query_endpoint(request: QueryRequest):
-    """Main chat endpoint."""
+    """
+    Main endpoint for receiving user questions and returning AI-generated answers.
+    """
     if not manager:
-        return QueryResponse(
-            response="System initializing – please retry in a moment.",
-            session_id=request.session_id,
+        raise HTTPException(
+            status_code=503, 
+            detail="System is initializing, please retry in a moment."
         )
 
     query = request.query.strip()
     if not query:
-        return QueryResponse(
-            response="What would you like to learn about?",
-            session_id=request.session_id,
-        )
+        raise HTTPException(status_code=400, detail="Query cannot be empty.")
 
     try:
-        response = await manager.ask(query, request.session_id, request.k)
-        return QueryResponse(response=response, session_id=request.session_id)
+        response_text = await manager.ask(query, request.session_id, request.k)
+        return QueryResponse(response=response_text, session_id=request.session_id)
         
-    except HTTPException:
-        raise
     except Exception as e:
-        log.error(f"Endpoint error: {e}")
-        return QueryResponse(
-            response="Unexpected server error. Please try again.",
-            session_id=request.session_id,
-        )
+        log.error(f"Critical endpoint error for session {request.session_id[:8]}: {e}")
+        raise HTTPException(status_code=500, detail="An unexpected server error occurred.")
 
 
 if __name__ == "__main__":

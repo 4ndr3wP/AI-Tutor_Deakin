@@ -40,8 +40,8 @@ class CFG:
     GPU_FRACTION = 0.5
     
     # Retrieval & memory
-    DEFAULT_K = 5
-    MEMORY_TURNS = 10
+    DEFAULT_K = 5 # Number of documents to retrieve
+    MEMORY_WINDOW_K = 30
     
     # Timeout settings
     REQUEST_TIMEOUT = 300.0  # 5 minutes
@@ -103,11 +103,14 @@ You are an AI tutor assisting with university unit content. You will be given
 course context, chat history, and a student question.
 
 1. Use ONLY the context and history to answer factually and clearly.
-2. Stay concise and on-topic.
-3. If the question is outside the context, give a brief overview answer and do not hallucinate.
-4. After the answer, provide a list of relevant weeks or slides in square brackets,
+2. CRITICAL: Preserve exact numbers, hyper-parameters, acronyms, algorithms, and names 
+   exactly as stated in the history. Do NOT paraphrase or generalize them.
+3. If information from the history is requested, check the entire conversation carefully.
+4. Stay concise and on-topic.
+5. If the question is outside the context, give a brief overview answer and do not hallucinate.
+6. After the answer, provide a list of relevant weeks or slides in square brackets,
    e.g., Related material: [week 1, week 2]. Do NOT reveal full document text.
-5. If the question is malicious or sensitive, REFUSE to answer.
+7. If the question is malicious or sensitive, REFUSE to answer.
 
 <|im_start|>user<|im_sep|>
 Conversation history:
@@ -163,8 +166,9 @@ class MultiTurnManager:
         self.chain: Runnable = PROMPT | self.llm | StrOutputParser()
         
         # Session management
-        self._memories: Dict[str, ConversationBufferWindowMemory] = {}
+        self._memories: Dict = {}
         self._locks: Dict[str, threading.Lock] = defaultdict(threading.Lock)
+        self._key_facts: Dict[str, List[str]] = defaultdict(list)  # Track key facts per session
         
         log.info("✅ Multi-turn LCEL system ready")
 
@@ -173,15 +177,15 @@ class MultiTurnManager:
         with self._locks[session_id]:
             if session_id not in self._memories:
                 self._memories[session_id] = ConversationBufferWindowMemory(
-                    k=CFG.MEMORY_TURNS,
+                    k=CFG.MEMORY_WINDOW_K,
                     memory_key="chat_history",
                     return_messages=True,
                 )
-                log.info(f"Created new memory for session {session_id[:8]}...")
+                log.info(f"Created new window memory for session {session_id[:8]}...(k={CFG.MEMORY_WINDOW_K})")
             return self._memories[session_id]
 
     @staticmethod
-    def _format_docs(docs: List[Document]) -> str:
+    def _format_docs(docs: List) -> str:
         """Joins document contents into a single string for context."""
         return "\n\n".join(doc.page_content for doc in docs)
         
@@ -200,6 +204,34 @@ class MultiTurnManager:
         
         return "\n".join(lines)
 
+    def _extract_key_facts(self, text: str) -> List[str]:
+        """Extract key technical facts that should be preserved."""
+        import re
+        facts = []
+        
+        # Numbers with context
+        patterns = [
+            r'\b\d+\s+agents?\b',  # "5 agents"
+            r'\b\d+\s+degrees?\s+of\s+freedom\b',  # "7 degrees of freedom"
+            r'learning\s+rate[:\s]+[\d.e-]+',  # "learning rate 0.001"
+            r'\b(?:DQN|DDPG|PPO|SARSA|Q-learning|MADDPG|MAPPO)\b',  # Algorithm names
+            r'\b(?:robotic\s+arm|autonomous\s+vehicle|Atari|CartPole)\b',  # Systems/envs
+            r'(?:pick\s+up|object\s+manipulation)',  # Tasks
+        ]
+        
+        for pattern in patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            facts.extend(matches)
+        
+        return facts
+
+    def _format_key_facts(self, facts: List[str]) -> str:
+        """Format key facts for inclusion in prompt."""
+        if not facts:
+            return ""
+        unique_facts = list(dict.fromkeys(facts))  # Remove duplicates while preserving order
+        return "\n\nKey facts from conversation:\n" + "\n".join(f"- {fact}" for fact in unique_facts[-10:])  # Keep last 10
+
     async def ask(self, question: str, session_id: str, k: Optional[int] = None) -> str:
         """
         Handles a user query by retrieving context, incorporating memory,
@@ -217,8 +249,18 @@ class MultiTurnManager:
             
             # 3. Load and format chat history
             memory_vars = memory.load_memory_variables({})
-            history_messages = memory_vars.get("chat_history", [])
+            history_messages = memory_vars.get("chat_history", [])  # FIX: Add default
             history = self._format_history(history_messages)
+            
+            # 3.5. Extract and track key facts
+            new_facts = self._extract_key_facts(question)
+            if new_facts:
+                self._key_facts[session_id].extend(new_facts)
+            
+            # Include key facts in history
+            key_facts_str = self._format_key_facts(self._key_facts[session_id])
+            if key_facts_str:
+                history = history + key_facts_str
             
             log.info(f"Session {session_id[:8]}: {len(history_messages)} previous messages. Retrieving {search_k} docs.")
             
@@ -232,6 +274,11 @@ class MultiTurnManager:
             # 5. Save the new interaction to memory
             memory.save_context({"input": question}, {"output": response})
             
+            # 5.5. Extract facts from response too
+            response_facts = self._extract_key_facts(response)
+            if response_facts:
+                self._key_facts[session_id].extend(response_facts)
+            
             return response
             
         except Exception as e:
@@ -243,7 +290,7 @@ class MultiTurnManager:
 # --------------------------------------------------------------------------- #
 # FastAPI Application                                                         #
 # --------------------------------------------------------------------------- #
-manager: Optional[MultiTurnManager] = None
+manager: Optional = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -253,11 +300,10 @@ async def lifespan(app: FastAPI):
     manager = MultiTurnManager()
     yield
     log.info("Application shutting down.")
-    # No manual executor shutdown needed anymore
 
 app = FastAPI(
     title="AI-Tutor Multi-turn (LCEL)", 
-    version="2.0.0",
+    version="2.1.0", # Incremented version
     lifespan=lifespan
 )
 
@@ -286,8 +332,8 @@ async def health():
     """Provides the operational status of the service."""
     return {
         "status": "ok" if manager else "initializing",
-        "model": CFG.MODEL_NAME,
-        "memory_turns": CFG.MEMORY_TURNS
+        "model": CFG.MODEL_NAME
+        # "memory_window_k": CFG.MEMORY_WINDOW_K
     }
 
 @app.post("/query", response_model=QueryResponse, summary="Process a User Query")

@@ -1,70 +1,69 @@
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Brain, ChevronRight, Clock, Target } from "lucide-react";
+import axios from "axios";
 
 interface QuizSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const QuizSelectionModal: React.FC<QuizSelectionModalProps> = ({ isOpen, onClose }) => {
-  // Mock data for now - we'll connect to backend later
-  const weeks = [
-    { 
-      id: "week01", 
-      title: "Week 1: Introduction to Reinforcement Learning", 
-      topics: ["History", "Basic Concepts", "Agents & Environments"] 
-    },
-    { 
-      id: "week02", 
-      title: "Week 2: Psychology & Learning Foundations", 
-      topics: ["Behavioral Learning", "Cognitive Science", "Neural Basis"] 
-    },
-    { 
-      id: "week03", 
-      title: "Week 3: MDPs & Dynamic Programming", 
-      topics: ["Markov Decision Processes", "Value Functions", "Policy Iteration"] 
-    },
-    { 
-      id: "week04", 
-      title: "Week 4: Monte Carlo Methods", 
-      topics: ["Sampling", "Policy Evaluation", "Control Methods"] 
-    },
-    { 
-      id: "week05", 
-      title: "Week 5: Temporal Difference Learning", 
-      topics: ["TD Learning", "SARSA", "Q-Learning"] 
-    },
-    { 
-      id: "week06", 
-      title: "Week 6: Eligibility Traces & DYNA", 
-      topics: ["Eligibility Traces", "TD(λ)", "Dyna Architecture"] 
-    },
-    { 
-      id: "week07", 
-      title: "Week 7: Function Approximation", 
-      topics: ["Linear Methods", "Neural Networks", "Feature Engineering"] 
-    },
-    { 
-      id: "week08", 
-      title: "Week 8: Deep RL & Policy Gradients", 
-      topics: ["Deep Q-Networks", "Policy Gradients", "Actor-Critic"] 
-    },
-    { 
-      id: "week09", 
-      title: "Week 9: Multi-Agent RL & Advising", 
-      topics: ["MARL", "Coordination", "Human-AI Interaction"] 
-    },
-    { 
-      id: "week10", 
-      title: "Week 10: Multi-Objective Reinforcement Learning", 
-      topics: ["Multiple Objectives", "Pareto Fronts", "Scalarization"] 
-    },
-  ];
+interface Week {
+  id: string;
+  title: string;
+  topics: string[];
+  file_count: number;
+}
 
-  const handleStartQuiz = (week: any) => {
-    alert(`🎯 Starting Quiz for ${week.title}!\n\nNext: Generate questions from this week's content.`);
-    onClose();
+export const QuizSelectionModal: React.FC<QuizSelectionModalProps> = ({ isOpen, onClose }) => {
+  const [weeks, setWeeks] = React.useState<Week[]>([]);
+  const [loadingWeeks, setLoadingWeeks] = React.useState(false);
+  const [generatingQuiz, setGeneratingQuiz] = React.useState<string | null>(null); // Track which week is generating
+  const [error, setError] = React.useState<string | null>(null);
+
+  // Fetch weeks when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      fetchWeeks();
+    }
+  }, [isOpen]);
+
+  const fetchWeeks = async () => {
+    try {
+      setLoadingWeeks(true);
+      setError(null);
+      const response = await axios.get('http://a100-f-01.ai.deakin.edu.au:8000/quiz/weeks');
+      setWeeks(response.data.weeks);
+    } catch (err) {
+      console.error('Failed to fetch weeks:', err);
+      setError('Failed to load course weeks. Please try again.');
+    } finally {
+      setLoadingWeeks(false);
+    }
+  };
+
+  const handleStartQuiz = async (week: Week) => {
+    try {
+      setGeneratingQuiz(week.id);
+      
+      // Call the quiz generation endpoint
+      const response = await axios.post('http://a100-f-01.ai.deakin.edu.au:8000/quiz/generate', null, {
+        params: { week_id: week.id }
+      });
+      
+      console.log('Quiz generated successfully:', response.data);
+      
+      // TODO: Navigate to quiz interface instead of alert
+      // For now, show success message and close modal
+      alert(`🧠 Quiz Ready!\n\n${response.data.questions.length} questions generated for ${week.title}\n\nNext step: Display the quiz interface`);
+      onClose();
+      
+    } catch (err) {
+      console.error('Failed to generate quiz:', err);
+      alert('❌ Failed to generate quiz. Please try again.');
+    } finally {
+      setGeneratingQuiz(null);
+    }
   };
 
   return (
@@ -86,6 +85,7 @@ export const QuizSelectionModal: React.FC<QuizSelectionModalProps> = ({ isOpen, 
             <button
               onClick={onClose}
               className="absolute top-4 right-6 text-gray-500 hover:text-black text-xl"
+              disabled={loadingWeeks || generatingQuiz !== null}
             >
               ✕
             </button>
@@ -100,47 +100,86 @@ export const QuizSelectionModal: React.FC<QuizSelectionModalProps> = ({ isOpen, 
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {weeks.map((week) => (
-                <div key={week.id} className="border rounded-xl p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-semibold text-lg text-gray-800">{week.title}</h3>
-                    <ChevronRight className="h-5 w-5 text-gray-400 mt-1" />
-                  </div>
-                  
-                  <div className="mb-4">
-                    <p className="text-sm text-gray-600 mb-2">Main Topics:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {week.topics.map((topic, idx) => (
-                        <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                          {topic}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+            {/* Loading weeks */}
+            {loadingWeeks && (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="mt-2 text-gray-600">Loading course weeks...</p>
+              </div>
+            )}
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        ~10 min
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Target className="h-4 w-4" />
-                        5 questions
-                      </div>
+            {/* Error state */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <p className="text-red-800">{error}</p>
+                <button 
+                  onClick={fetchWeeks}
+                  className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+
+            {/* Weeks list */}
+            {!loadingWeeks && !error && weeks.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {weeks.map((week) => (
+                  <div key={week.id} className="border rounded-xl p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="font-semibold text-lg text-gray-800">{week.title}</h3>
+                      <ChevronRight className="h-5 w-5 text-gray-400 mt-1" />
                     </div>
                     
-                    <button
-                      onClick={() => handleStartQuiz(week)}
-                      className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 text-sm font-medium"
-                    >
-                      Start Quiz
-                    </button>
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-2">Main Topics:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {week.topics.map((topic, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                            {topic}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          ~10 min
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Target className="h-4 w-4" />
+                          5 questions
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => handleStartQuiz(week)}
+                        disabled={generatingQuiz !== null}
+                        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {generatingQuiz === week.id ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Generating...
+                          </>
+                        ) : (
+                          'Start Quiz'
+                        )}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
+
+            {/* No weeks found */}
+            {!loadingWeeks && !error && weeks.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No course weeks found. Please check your course content.
+              </div>
+            )}
 
             <div className="mt-6 text-center">
               <p className="text-xs text-gray-500">

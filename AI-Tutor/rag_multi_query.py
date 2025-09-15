@@ -5,7 +5,11 @@ import threading
 import traceback
 from collections import defaultdict
 from contextlib import asynccontextmanager
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
+import os
+import random
+import re
+from pathlib import Path
 
 import torch
 from fastapi import FastAPI, HTTPException
@@ -206,7 +210,6 @@ class MultiTurnManager:
 
     def _extract_key_facts(self, text: str) -> List[str]:
         """Extract key technical facts that should be preserved."""
-        import re
         facts = []
         
         # Numbers with context
@@ -327,6 +330,28 @@ class QueryResponse(BaseModel):
     response: str
     session_id: str
 
+# Quiz Models
+class QuizQuestion(BaseModel):
+    id: str
+    question: str
+    options: List[str]
+    correct_answer: int
+    explanation: str
+
+class QuizData(BaseModel):
+    week_id: str
+    title: str
+    questions: List[QuizQuestion]
+
+class QuizWeek(BaseModel):
+    id: str
+    title: str
+    topics: List[str]
+    file_count: int
+
+class QuizWeeksResponse(BaseModel):
+    weeks: List[QuizWeek]
+
 @app.get("/health", summary="Health Check")
 async def health():
     """Provides the operational status of the service."""
@@ -359,6 +384,241 @@ async def query_endpoint(request: QueryRequest):
         log.error(f"Critical endpoint error for session {request.session_id[:8]}: {e}")
         raise HTTPException(status_code=500, detail="An unexpected server error occurred.")
 
+@app.get("/quiz/weeks", response_model=QuizWeeksResponse, summary="Get Available Quiz Weeks")
+async def get_quiz_weeks():
+    """Get list of available weeks for quiz generation."""
+    try:
+        weeks_path = Path("grouped_weeks")
+        if not weeks_path.exists():
+            raise HTTPException(status_code=404, detail="Course content directory not found")
+        
+        weeks = []
+        week_titles = {
+            "week01": "Week 1: Introduction to Reinforcement Learning",
+            "week02": "Week 2: Psychology & Learning Foundations", 
+            "week03": "Week 3: MDPs & Dynamic Programming",
+            "week04": "Week 4: Monte Carlo Methods",
+            "week05": "Week 5: Temporal Difference Learning",
+            "week06": "Week 6: Eligibility Traces & DYNA",
+            "week07": "Week 7: Function Approximation",
+            "week08": "Week 8: Deep RL & Policy Gradients",
+            "week09": "Week 9: Multi-Agent RL & Advising", 
+            "week10": "Week 10: Multi-Objective Reinforcement Learning"
+        }
+        
+        for week_dir in sorted(weeks_path.iterdir()):
+            if week_dir.is_dir() and week_dir.name.startswith("week"):
+                files = list(week_dir.glob("*.md"))
+                if files:  # Only include weeks with content
+                    topics = _extract_topics_from_week(week_dir)
+                    week_info = QuizWeek(
+                        id=week_dir.name,
+                        title=week_titles.get(week_dir.name, f"Week {week_dir.name[-2:]}"),
+                        topics=topics,
+                        file_count=len(files)
+                    )
+                    weeks.append(week_info)
+        
+        return QuizWeeksResponse(weeks=weeks)
+        
+    except Exception as e:
+        log.error(f"Error fetching quiz weeks: {e}")
+        raise HTTPException(status_code=500, detail="Failed to load course content")
+
+@app.post("/quiz/generate", response_model=QuizData, summary="Generate Quiz Questions")
+async def generate_quiz(week_id: str):
+    """Generate quiz questions for a specific week."""
+    if not manager:
+        raise HTTPException(status_code=503, detail="System is initializing")
+    
+    try:
+        # Load week content
+        content = _load_week_content(week_id)
+        if not content:
+            raise HTTPException(status_code=404, detail=f"No content found for {week_id}")
+        
+        # Generate questions
+        questions = await _generate_quiz_questions(content, week_id)
+        
+        week_titles = {
+            "week01": "Week 1: Introduction to Reinforcement Learning",
+            "week02": "Week 2: Psychology & Learning Foundations", 
+            "week03": "Week 3: MDPs & Dynamic Programming",
+            "week04": "Week 4: Monte Carlo Methods",
+            "week05": "Week 5: Temporal Difference Learning",
+            "week06": "Week 6: Eligibility Traces & DYNA",
+            "week07": "Week 7: Function Approximation",
+            "week08": "Week 8: Deep RL & Policy Gradients",
+            "week09": "Week 9: Multi-Agent RL & Advising", 
+            "week10": "Week 10: Multi-Objective Reinforcement Learning"
+        }
+        
+        return QuizData(
+            week_id=week_id,
+            title=week_titles.get(week_id, f"Week {week_id[-2:]}"),
+            questions=questions
+        )
+        
+    except Exception as e:
+        log.error(f"Error generating quiz for {week_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate quiz questions")
+
+def _extract_topics_from_week(week_dir: Path) -> List[str]:
+    """Extract main topics from week's markdown files."""
+    topics = []
+    for file_path in week_dir.glob("*.md"):
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                # Extract level 2 headings as topics
+                headings = re.findall(r'^##\s+(.+)$', content, re.MULTILINE)
+                # Clean and limit topics
+                clean_topics = [h.strip()[:30] for h in headings if h.strip() and len(h.strip()) > 3]
+                topics.extend(clean_topics[:3])  # Max 3 topics per file
+        except Exception:
+            continue
+    
+    # Remove duplicates and limit total
+    unique_topics = []
+    for topic in topics:
+        if topic not in unique_topics and len(unique_topics) < 4:
+            unique_topics.append(topic)
+    
+    return unique_topics or ["Key Concepts", "Methods", "Applications"]
+
+def _load_week_content(week_id: str) -> str:
+    """Load and return content for specified week."""
+    week_path = Path(f"grouped_weeks/{week_id}")
+    if not week_path.exists():
+        return ""
+    
+    content = ""
+    for file_path in week_path.glob("*.md"):
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                file_content = f.read()
+                content += f"\n\n--- {file_path.name} ---\n\n{file_content}"
+        except Exception:
+            continue
+    
+    return content
+
+async def _generate_quiz_questions(content: str, week_id: str) -> List[QuizQuestion]:
+    """Generate quiz questions using LLM based on content."""
+    
+    # Limit content to avoid token limits
+    content_preview = content[:4000] if content else ""
+    
+    quiz_prompt = f"""Based on this educational content from {week_id}, create 5 multiple-choice questions that test understanding of key concepts.
+
+IMPORTANT RULES:
+1. Create original questions that test conceptual understanding
+2. Each question should have exactly 4 options (A, B, C, D)
+3. Only ONE option should be correct
+4. Provide clear explanations for the correct answers
+5. Focus on the most important concepts from the material
+
+Content:
+{content_preview}
+
+Generate questions in this EXACT format:
+
+QUESTION 1:
+Q: [Clear, specific question about a key concept]
+A) [First option]
+B) [Second option] 
+C) [Third option]
+D) [Fourth option]
+CORRECT: [A/B/C/D]
+EXPLANATION: [Brief explanation of why this answer is correct]
+
+QUESTION 2:
+[Continue same format...]
+
+Generate exactly 5 questions following this format."""
+
+    try:
+        # Generate questions using the existing manager
+        response = await manager.ask(quiz_prompt, f"quiz_gen_{week_id}_{random.randint(1000,9999)}", k=3)
+        
+        # Parse the response into QuizQuestion objects
+        questions = _parse_quiz_questions(response, week_id)
+        
+        # Ensure we have at least some questions
+        if not questions:
+            questions = _get_fallback_questions(week_id)
+            
+        return questions[:5]  # Limit to 5 questions
+        
+    except Exception as e:
+        log.error(f"Quiz generation failed for {week_id}: {e}")
+        return _get_fallback_questions(week_id)
+
+def _parse_quiz_questions(response: str, week_id: str) -> List[QuizQuestion]:
+    """Parse LLM response into QuizQuestion objects."""
+    questions = []
+    
+    # Split into question blocks
+    question_blocks = re.split(r'QUESTION \d+:', response)[1:]  # Skip first empty element
+    
+    for i, block in enumerate(question_blocks):
+        try:
+            lines = [line.strip() for line in block.strip().split('\n') if line.strip()]
+            
+            if not lines:
+                continue
+                
+            # Extract question text (after "Q:")
+            question_text = ""
+            options = []
+            correct_answer = 0
+            explanation = ""
+            
+            for line in lines:
+                if line.startswith('Q:'):
+                    question_text = line[2:].strip()
+                elif line.startswith(('A)', 'B)', 'C)', 'D)')):
+                    options.append(line[2:].strip())
+                elif line.startswith('CORRECT:'):
+                    answer_letter = line.split(':')[1].strip().upper()
+                    if answer_letter in 'ABCD':
+                        correct_answer = ord(answer_letter) - ord('A')
+                elif line.startswith('EXPLANATION:'):
+                    explanation = line.split(':', 1)[1].strip()
+            
+            # Only add if we have a complete question
+            if question_text and len(options) == 4 and explanation:
+                question = QuizQuestion(
+                    id=f"{week_id}_q{i+1}",
+                    question=question_text,
+                    options=options,
+                    correct_answer=correct_answer,
+                    explanation=explanation
+                )
+                questions.append(question)
+                
+        except Exception as e:
+            log.error(f"Error parsing question {i+1}: {e}")
+            continue
+    
+    return questions
+
+def _get_fallback_questions(week_id: str) -> List[QuizQuestion]:
+    """Provide fallback questions if generation fails."""
+    return [
+        QuizQuestion(
+            id=f"{week_id}_fallback_1",
+            question=f"What is a key concept covered in {week_id.replace('week', 'Week ')}?",
+            options=[
+                "Mathematical foundations",
+                "Historical context", 
+                "Practical applications",
+                "All of the above"
+            ],
+            correct_answer=3,
+            explanation="This week covers multiple important aspects of reinforcement learning."
+        )
+    ]
 
 if __name__ == "__main__":
     import uvicorn

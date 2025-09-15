@@ -6,6 +6,7 @@ import axios from "axios";
 interface QuizSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onQuizGenerated: (quizData: any) => void; // ADD THIS LINE
 }
 
 interface Week {
@@ -15,7 +16,7 @@ interface Week {
   file_count: number;
 }
 
-export const QuizSelectionModal: React.FC<QuizSelectionModalProps> = ({ isOpen, onClose }) => {
+export const QuizSelectionModal: React.FC<QuizSelectionModalProps> = ({ isOpen, onClose, onQuizGenerated }) => {
   const [weeks, setWeeks] = React.useState<Week[]>([]);
   const [loadingWeeks, setLoadingWeeks] = React.useState(false);
   const [generatingQuiz, setGeneratingQuiz] = React.useState<string | null>(null); // Track which week is generating
@@ -53,9 +54,8 @@ export const QuizSelectionModal: React.FC<QuizSelectionModalProps> = ({ isOpen, 
       
       console.log('Quiz generated successfully:', response.data);
       
-      // TODO: Navigate to quiz interface instead of alert
-      // For now, show success message and close modal
-      alert(`🧠 Quiz Ready!\n\n${response.data.questions.length} questions generated for ${week.title}\n\nNext step: Display the quiz interface`);
+      // Pass quiz data to parent and close selection modal
+      onQuizGenerated(response.data);
       onClose();
       
     } catch (err) {

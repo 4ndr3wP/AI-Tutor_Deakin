@@ -8,6 +8,7 @@ import { AppSidebar } from "./components/sidebar/app-sidebar";
 import { MathJaxContext } from "better-react-mathjax";
 import axios from "axios";
 import { QuizSelectionModal } from "./components/sidebar/QuizSelectionModal";
+import { QuizInterface } from "./components/sidebar/QuizInterface";
 
 export interface Message {
   id: number;
@@ -44,6 +45,7 @@ function App() {
     return existingSessionId;
   });
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
+  const [currentQuizData, setCurrentQuizData] = useState(null);
 
   const handleStopGeneration = () => {
     if (abortControllerRef.current) {
@@ -57,6 +59,16 @@ function App() {
 
   const handleQuizClick = () => {
     setIsQuizModalOpen(true);
+  };
+
+  const handleQuizGenerated = (quizData: any) => {
+    setCurrentQuizData(quizData);
+    setIsQuizModalOpen(false); // Close selection modal
+    // QuizInterface will open automatically when currentQuizData is set
+  };
+
+  const handleQuizClose = () => {
+    setCurrentQuizData(null);
   };
 
   const handleSubmit = async (
@@ -183,7 +195,13 @@ function App() {
       </SidebarProvider>
       <QuizSelectionModal 
         isOpen={isQuizModalOpen} 
-        onClose={() => setIsQuizModalOpen(false)} 
+        onClose={() => setIsQuizModalOpen(false)}
+        onQuizGenerated={handleQuizGenerated}
+      />
+      <QuizInterface
+        isOpen={currentQuizData !== null}
+        onClose={handleQuizClose}
+        quizData={currentQuizData}
       />
     </MathJaxContext>
   );

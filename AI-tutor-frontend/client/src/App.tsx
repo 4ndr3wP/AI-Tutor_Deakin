@@ -7,6 +7,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "./components/ui/s
 import { AppSidebar } from "./components/sidebar/app-sidebar";
 import { MathJaxContext } from "better-react-mathjax";
 import axios from "axios";
+import { QuizSelectionModal } from "./components/sidebar/QuizSelectionModal";
 
 export interface Message {
   id: number;
@@ -42,6 +43,7 @@ function App() {
     }
     return existingSessionId;
   });
+  const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
 
   const handleStopGeneration = () => {
     if (abortControllerRef.current) {
@@ -54,7 +56,7 @@ function App() {
   };
 
   const handleQuizClick = () => {
-    alert("🧠 Quiz Feature!\n\nComing up next: Week selection modal");
+    setIsQuizModalOpen(true);
   };
 
   const handleSubmit = async (
@@ -179,6 +181,10 @@ function App() {
           </div>
         </SidebarInset>
       </SidebarProvider>
+      <QuizSelectionModal 
+        isOpen={isQuizModalOpen} 
+        onClose={() => setIsQuizModalOpen(false)} 
+      />
     </MathJaxContext>
   );
 }

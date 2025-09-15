@@ -53,6 +53,10 @@ function App() {
     setInputText(prompt);
   };
 
+  const handleQuizClick = () => {
+    alert("🧠 Quiz Feature!\n\nComing up next: Week selection modal");
+  };
+
   const handleSubmit = async (
     message: string,
     setMessage: React.Dispatch<React.SetStateAction<string>>,
@@ -151,7 +155,10 @@ function App() {
               {messages.length > 0 ? (
                 <ChatMessages messages={messages} isStreaming={isStreaming} />
               ) : (
-                <ChatPrompts onPromptSelect={handlePromptSelect} />
+                <ChatPrompts 
+                  onPromptSelect={handlePromptSelect} 
+                  onQuizClick={handleQuizClick}
+                />
               )}
               <div ref={messagesEndRef} />
             </div>

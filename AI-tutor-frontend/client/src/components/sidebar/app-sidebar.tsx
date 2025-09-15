@@ -52,7 +52,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     if (item.onClick === "feedback") {
       setFeedbackModalOpen(true)
     }
-    
   }
 
   return (

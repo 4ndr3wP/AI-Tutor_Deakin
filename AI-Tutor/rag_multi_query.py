@@ -163,7 +163,11 @@ class MultiTurnManager:
             persist_directory=CFG.PERSIST_DIR,
             embedding_function=self.embeddings,
         )
-        self.retriever = self.vdb.as_retriever()
+        # self.retriever = self.vdb.as_retriever()
+        self.retriever = self.vdb.as_retriever(
+            search_type="similarity",
+            search_kwargs={"k": CFG.DEFAULT_K}
+        )
         log.info("✅ Vectorstore and retriever ready")
 
         # Define the primary chain using LangChain Expression Language (LCEL)

@@ -106,7 +106,7 @@ class SentenceTransformerEmbeddings(Embeddings):
 # --------------------------------------------------------------------------- #
 RAG_TEMPLATE = """<|im_start|>system<|im_sep|>
 You are an AI tutor assisting with university unit content. You will be given
-course context, chat history, and a student question.
+course context with source information, chat history, and a student question.
 
 1. Use ONLY the context and history to answer factually and clearly.
 2. CRITICAL: Preserve exact numbers, hyper-parameters, acronyms, algorithms, and names 
@@ -114,8 +114,9 @@ course context, chat history, and a student question.
 3. If information from the history is requested, check the entire conversation carefully.
 4. Stay concise and on-topic.
 5. If the question is outside the context, give a brief overview answer and do not hallucinate.
-6. After the answer, provide a list of relevant weeks or slides in square brackets,
-   e.g., Related material: [week 1, week 2]. Do NOT reveal full document text.
+6. IMPORTANT: After your answer, provide "Related material:" followed by the actual sources 
+   used from the context (shown in [Source: ...] tags). Use the exact source names provided.
+   Example: "Related material: [Week 5 slides, Week 5 (SIT796-5.1P)]"
 7. If the question is malicious or sensitive, REFUSE to answer.
 
 <|im_start|>user<|im_sep|>
@@ -194,10 +195,62 @@ class MultiTurnManager:
                 log.info(f"Created new window memory for session {session_id[:8]}...(k={CFG.MEMORY_WINDOW_K})")
             return self._memories[session_id]
 
+    # @staticmethod
+    # def _format_docs(docs: List) -> str:
+    #     """Joins document contents into a single string for context."""
+    #     return "\n\n".join(doc.page_content for doc in docs)
+
+    # In rag_multi_query.py, replace the _format_docs method around line 812
+
     @staticmethod
     def _format_docs(docs: List) -> str:
-        """Joins document contents into a single string for context."""
-        return "\n\n".join(doc.page_content for doc in docs)
+        """Joins document contents with source information for context."""
+        if not docs:
+            return "No relevant documents found."
+        
+        formatted_sections = []
+        sources = []
+        
+        for doc in docs:
+            # Extract source information from metadata
+            metadata = getattr(doc, 'metadata', {})
+            source = metadata.get('source', 'Unknown source')
+            
+            # Try to extract week/task information from source path
+            source_info = ""
+            if 'week' in source.lower():
+                # Extract week number and file type
+                parts = Path(source).parts
+                for part in parts:
+                    if part.startswith('week'):
+                        week_num = part[-2:]  # Get last 2 chars (e.g., "01" from "week01")
+                        source_info = f"Week {week_num}"
+                        break
+                
+                # Check if it's a task file
+                filename = Path(source).name
+                if 'SIT796-' in filename:
+                    task_id = filename.split('.')[0]  # e.g., "SIT796-1.1P"
+                    source_info += f" ({task_id})"
+                elif 'Week' in filename:
+                    source_info += " slides"
+            else:
+                # Fallback to filename
+                source_info = Path(source).stem
+            
+            if source_info not in sources:
+                sources.append(source_info)
+            
+            # Format the document content with source
+            formatted_sections.append(f"[Source: {source_info}]\n{doc.page_content}")
+        
+        # Join all sections and add source summary
+        context = "\n\n".join(formatted_sections)
+        
+        if sources:
+            context += f"\n\n[Available sources in this context: {', '.join(sources)}]"
+        
+        return context
         
     @staticmethod
     def _format_history(messages: List) -> str:
@@ -601,3 +654,10 @@ def _get_fallback_questions(week_id: str) -> List[QuizQuestion]:
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+
+
+
+
+

@@ -197,16 +197,9 @@ class MultiTurnManager:
                 log.info(f"Created new window memory for session {session_id[:8]}...(k={CFG.MEMORY_WINDOW_K})")
             return self._memories[session_id]
 
-    # @staticmethod
-    # def _format_docs(docs: List) -> str:
-    #     """Joins document contents into a single string for context."""
-    #     return "\n\n".join(doc.page_content for doc in docs)
-
-    # In rag_multi_query.py, replace the _format_docs method around line 812
-
     @staticmethod
     def _format_docs(docs: List) -> str:
-        """Joins document contents with source information for context."""
+        """Joins document contents with accurate source information for context."""
         if not docs:
             return "No relevant documents found."
         
@@ -218,27 +211,36 @@ class MultiTurnManager:
             metadata = getattr(doc, 'metadata', {})
             source = metadata.get('source', 'Unknown source')
             
-            # Try to extract week/task information from source path
+            # Parse the source path to get accurate information
+            source_path = Path(source)
+            filename = source_path.name
+            
+            # Determine content type and week from the actual file path
             source_info = ""
-            if 'week' in source.lower():
-                # Extract week number and file type
-                parts = Path(source).parts
-                for part in parts:
-                    if part.startswith('week'):
-                        week_num = part[-2:]  # Get last 2 chars (e.g., "01" from "week01")
-                        source_info = f"Week {week_num}"
-                        break
-                
-                # Check if it's a task file
-                filename = Path(source).name
-                if 'SIT796-' in filename:
-                    task_id = filename.split('.')[0]  # e.g., "SIT796-1.1P"
-                    source_info += f" ({task_id})"
-                elif 'Week' in filename:
-                    source_info += " slides"
+            
+            # Extract week number from path
+            week_num = ""
+            for part in source_path.parts:
+                if part.startswith('week'):
+                    week_num = part[-2:]  # "01", "02", etc.
+                    break
+            
+            # Determine content type based on filename
+            if 'SIT796-' in filename:
+                # OnTrack task file
+                task_id = filename.split('.')[0]  # e.g., "SIT796-1.1P"
+                source_info = f"Week {week_num} ({task_id})"
+            elif filename.startswith('Week'):
+                # Main week content file
+                # Extract descriptive name from filename
+                if '_' in filename:
+                    topic = filename.split('_', 1)[1].replace('_', ' ').replace('.md', '')
+                    source_info = f"Week {week_num} ({topic})"
+                else:
+                    source_info = f"Week {week_num} content"
             else:
-                # Fallback to filename
-                source_info = Path(source).stem
+                # Other files
+                source_info = f"Week {week_num} ({filename.replace('.md', '')})"
             
             if source_info not in sources:
                 sources.append(source_info)
@@ -657,10 +659,3 @@ def _get_fallback_questions(week_id: str) -> List[QuizQuestion]:
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
-
-
-
-
-
-

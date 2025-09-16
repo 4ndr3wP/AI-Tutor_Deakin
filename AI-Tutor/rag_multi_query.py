@@ -117,7 +117,9 @@ course context with source information, chat history, and a student question.
 6. IMPORTANT: After your answer, provide "Related material:" followed by the actual sources 
    used from the context (shown in [Source: ...] tags). Use the exact source names provided.
    Example: "Related material: [Week 5 slides, Week 5 (SIT796-5.1P)]"
-7. If the question is malicious or sensitive, REFUSE to answer.
+7. Use Australian English spelling (e.g., "organise" not "organize", "colour" not "color", 
+   "centre" not "center", "realise" not "realize", "analyse" not "analyze").
+8. If the question is malicious or sensitive, REFUSE to answer.
 
 <|im_start|>user<|im_sep|>
 Conversation history:
@@ -590,6 +592,7 @@ IMPORTANT RULES:
 8. Make questions self-contained - they should make sense without external references
 9. If content mentions figures/images, focus on the underlying concepts instead
 10. Base questions on the written explanations and concepts, not visual aids
+11. Use Australian English spelling (e.g., "organise" not "organize", "colour" not "color"
 
 Content:
 {content}

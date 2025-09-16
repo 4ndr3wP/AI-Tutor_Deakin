@@ -26,6 +26,8 @@ from langchain.embeddings.base import Embeddings
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.prompts import PromptTemplate
 from langchain.schema import AIMessage, HumanMessage
+from langchain_core.output_parsers import PydanticOutputParser
+from langchain_core.prompts import PromptTemplate
 
 # --------------------------------------------------------------------------- #
 # Configuration                                                               #
@@ -356,6 +358,9 @@ class QuizWeek(BaseModel):
 class QuizWeeksResponse(BaseModel):
     weeks: List[QuizWeek]
 
+class QuizGenerationResponse(BaseModel):
+    questions: List[QuizQuestion]
+
 @app.get("/health", summary="Health Check")
 async def health():
     """Provides the operational status of the service."""
@@ -508,12 +513,18 @@ def _load_week_content(week_id: str) -> str:
     return content
 
 async def _generate_quiz_questions(content: str, week_id: str) -> List[QuizQuestion]:
-    """Generate quiz questions using LLM based on content."""
+    """Generate quiz questions using LLM with structured output parsing."""
     
-    # Limit content to avoid token limits
-    content_preview = content[:4000] if content else ""
+    # Clean content and limit to avoid token limits
+    cleaned_content = _clean_content_for_quiz(content)
+    content_preview = cleaned_content[:4000] if cleaned_content else ""
     
-    quiz_prompt = f"""Based on this educational content from {week_id}, create 5 multiple-choice questions that test understanding of key concepts.
+    # Create output parser
+    parser = PydanticOutputParser(pydantic_object=QuizGenerationResponse)
+    
+    # Create structured prompt template
+    prompt_template = PromptTemplate(
+        template="""Based on this educational content from {week_id}, create 5 multiple-choice questions that test understanding of key concepts.
 
 IMPORTANT RULES:
 1. Create original questions that test conceptual understanding
@@ -521,32 +532,31 @@ IMPORTANT RULES:
 3. Only ONE option should be correct
 4. Provide clear explanations for the correct answers
 5. Focus on the most important concepts from the material
+6. DO NOT reference specific figures, diagrams, images, or visual elements
+7. DO NOT reference specific variable names (like g1, g2, etc.) without context
+8. Make questions self-contained - they should make sense without external references
+9. If content mentions figures/images, focus on the underlying concepts instead
+10. Base questions on the written explanations and concepts, not visual aids
 
 Content:
-{content_preview}
+{content}
 
-Generate questions in this EXACT format:
-
-QUESTION 1:
-Q: [Clear, specific question about a key concept]
-A) [First option]
-B) [Second option] 
-C) [Third option]
-D) [Fourth option]
-CORRECT: [A/B/C/D]
-EXPLANATION: [Brief explanation of why this answer is correct]
-
-QUESTION 2:
-[Continue same format...]
-
-Generate exactly 5 questions following this format."""
+{format_instructions}""",
+        input_variables=["week_id", "content"],
+        partial_variables={"format_instructions": parser.get_format_instructions()}
+    )
 
     try:
-        # Generate questions using the existing manager
-        response = await manager.ask(quiz_prompt, f"quiz_gen_{week_id}_{random.randint(1000,9999)}", k=3)
+        # Create the chain
+        chain = prompt_template | manager.llm | parser
         
-        # Parse the response into QuizQuestion objects
-        questions = _parse_quiz_questions(response, week_id)
+        # Generate questions
+        result = await chain.ainvoke({
+            "week_id": week_id,
+            "content": content_preview
+        })
+        
+        questions = result.questions
         
         # Ensure we have at least some questions
         if not questions:
@@ -558,54 +568,18 @@ Generate exactly 5 questions following this format."""
         log.error(f"Quiz generation failed for {week_id}: {e}")
         return _get_fallback_questions(week_id)
 
-def _parse_quiz_questions(response: str, week_id: str) -> List[QuizQuestion]:
-    """Parse LLM response into QuizQuestion objects."""
-    questions = []
+def _clean_content_for_quiz(content: str) -> str:
+    """Clean content to remove figure references and make it quiz-friendly."""
+    # Remove figure references
+    content = re.sub(r'<!-- image -->', '', content)
+    content = re.sub(r'!\[.*?\]\(.*?\)', '', content)  # Remove markdown images
+    content = re.sub(r'see figure.*?\.', '', content, flags=re.IGNORECASE)
+    content = re.sub(r'refer to.*?figure.*?\.', '', content, flags=re.IGNORECASE)
     
-    # Split into question blocks
-    question_blocks = re.split(r'QUESTION \d+:', response)[1:]  # Skip first empty element
+    # Remove specific variable references without context
+    content = re.sub(r'\bg[0-9]+\b', 'the target location', content, flags=re.IGNORECASE)
     
-    for i, block in enumerate(question_blocks):
-        try:
-            lines = [line.strip() for line in block.strip().split('\n') if line.strip()]
-            
-            if not lines:
-                continue
-                
-            # Extract question text (after "Q:")
-            question_text = ""
-            options = []
-            correct_answer = 0
-            explanation = ""
-            
-            for line in lines:
-                if line.startswith('Q:'):
-                    question_text = line[2:].strip()
-                elif line.startswith(('A)', 'B)', 'C)', 'D)')):
-                    options.append(line[2:].strip())
-                elif line.startswith('CORRECT:'):
-                    answer_letter = line.split(':')[1].strip().upper()
-                    if answer_letter in 'ABCD':
-                        correct_answer = ord(answer_letter) - ord('A')
-                elif line.startswith('EXPLANATION:'):
-                    explanation = line.split(':', 1)[1].strip()
-            
-            # Only add if we have a complete question
-            if question_text and len(options) == 4 and explanation:
-                question = QuizQuestion(
-                    id=f"{week_id}_q{i+1}",
-                    question=question_text,
-                    options=options,
-                    correct_answer=correct_answer,
-                    explanation=explanation
-                )
-                questions.append(question)
-                
-        except Exception as e:
-            log.error(f"Error parsing question {i+1}: {e}")
-            continue
-    
-    return questions
+    return content
 
 def _get_fallback_questions(week_id: str) -> List[QuizQuestion]:
     """Provide fallback questions if generation fails."""

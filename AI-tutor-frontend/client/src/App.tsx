@@ -9,6 +9,8 @@ import { MathJaxContext } from "better-react-mathjax";
 import axios from "axios";
 import { QuizSelectionModal } from "./components/sidebar/QuizSelectionModal";
 import { QuizInterface } from "./components/sidebar/QuizInterface";
+import { Button } from "./components/ui/button";
+import { Brain } from "lucide-react";
 
 export interface Message {
   id: number;
@@ -156,7 +158,16 @@ function App() {
             <div>
               <p>SIT796 Reinforcement Learning</p>
             </div>
-            <div className="ml-auto px-3">
+            {/* ADD: Quiz button in header */}
+            <div className="ml-auto flex items-center gap-3 px-3">
+              <Button 
+                onClick={handleQuizClick}
+                size="sm"
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-sm"
+              >
+                <Brain className="h-4 w-4 mr-2" />
+                Quiz
+              </Button>
               <div className="flex items-center gap-2 text-sm">
                 <div className="hidden font-medium text-muted-foreground md:inline-block">
                   A2I2

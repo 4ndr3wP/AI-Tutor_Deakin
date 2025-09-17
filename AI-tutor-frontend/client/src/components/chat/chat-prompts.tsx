@@ -1,12 +1,11 @@
-import { SparklesIcon, Brain, Zap } from "lucide-react"
+import { SparklesIcon } from "lucide-react"
 import { Button } from "../ui/button"
 
 interface ChatPromptsProps {
     onPromptSelect: (prompt: string) => void;
-    onQuizClick?: () => void;
 }
 
-function ChatPrompts({ onPromptSelect, onQuizClick }: ChatPromptsProps) {
+function ChatPrompts({ onPromptSelect }: ChatPromptsProps) {
     const prompts: string[] = [
         "Important Questions",
         "Doubts Related to last week Lecture",
@@ -25,23 +24,8 @@ function ChatPrompts({ onPromptSelect, onQuizClick }: ChatPromptsProps) {
                 <p className="text-muted-foreground text-sm">Choose a prompt below or write your own to start chatting with Deakin AI Tutor</p>
             </div>
 
-            {/* Prominent Quiz Button */}
-            <div className="w-full max-w-sm">
-                <Button 
-                    onClick={onQuizClick}
-                    className="w-full h-16 text-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl"
-                >
-                    <Brain className="h-6 w-6 mr-3" />
-                    Take a Quiz!
-                    <Zap className="h-5 w-5 ml-3 text-yellow-300" />
-                </Button>
-                <p className="text-center text-xs text-muted-foreground mt-2">
-                    Test your knowledge on any week's content
-                </p>
-            </div>
-
             <div className="flex flex-col gap-4 text-center">
-                <p className="text-muted-foreground text-sm font-normal">Or ask about:</p>
+                <p className="text-muted-foreground text-sm font-normal">Ask about:</p>
                 <div className="flex flex-row flex-wrap items-center justify-center gap-2">
                     {prompts.map((prompt) => {
                         return <Button

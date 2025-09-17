@@ -166,7 +166,7 @@ function App() {
                 className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-sm"
               >
                 <Brain className="h-4 w-4 mr-2" />
-                Quiz
+                Take a Quiz!
               </Button>
               <div className="flex items-center gap-2 text-sm">
                 <div className="hidden font-medium text-muted-foreground md:inline-block">
@@ -182,7 +182,6 @@ function App() {
               ) : (
                 <ChatPrompts 
                   onPromptSelect={handlePromptSelect} 
-                  onQuizClick={handleQuizClick}
                 />
               )}
               <div ref={messagesEndRef} />

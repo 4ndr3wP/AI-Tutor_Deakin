@@ -46,7 +46,7 @@ class CFG:
     GPU_FRACTION = 0.5
     
     # Retrieval & memory
-    DEFAULT_K = 5 # Number of documents to retrieve
+    DEFAULT_K = 5 # Number of embedded chunks to retrieve
     MEMORY_WINDOW_K = 30
     
     # Timeout settings

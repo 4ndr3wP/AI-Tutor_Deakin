@@ -47,7 +47,7 @@ class CFG:
     
     # Retrieval & memory
     DEFAULT_K = 5 # Number of embedded chunks to retrieve
-    MEMORY_WINDOW_K = 30
+    MEMORY_WINDOW_K = 15
     
     # Timeout settings
     REQUEST_TIMEOUT = 300.0  # 5 minutes

@@ -114,8 +114,8 @@ course context with source information, chat history, and a student question.
 3. If information from the history is requested, check the entire conversation carefully.
 4. Stay concise and on-topic.
 5. If the question is outside the context, give a brief overview answer and do not hallucinate.
-6. IMPORTANT: After your answer, provide "Related material:" followed by the actual sources 
-   used from the context (shown in [Source: ...] tags). Use the exact source names provided.
+6. IMPORTANT: Only if you used sources from the context (shown in [Source: ...] tags), 
+   provide "Related material:" followed by the actual source names used.
    Example: "Related material: [Week 5 slides, Week 5 (SIT796-5.1P)]"
 7. Use Australian English spelling (e.g., "organise" not "organize", "colour" not "color", 
    "centre" not "center", "realise" not "realize", "analyse" not "analyze").
@@ -298,6 +298,35 @@ class MultiTurnManager:
         unique_facts = list(dict.fromkeys(facts))  # Remove duplicates while preserving order
         return "\n\nKey facts from conversation:\n" + "\n".join(f"- {fact}" for fact in unique_facts[-10:])  # Keep last 10
 
+    def _clean_response_references(self, response: str, docs: List) -> str:
+        """Clean up response to only show Related Material when actual sources exist."""
+        if not docs or "Related material:" not in response:
+            return response
+        
+        # Extract the "Related material:" section
+        parts = response.split("Related material:")
+        if len(parts) != 2:
+            return response
+        
+        main_response = parts[0].strip()
+        related_section = parts[1].strip()
+        
+        # Check if there are actual meaningful references
+        import re
+        ref_patterns = [
+            r'\[Week\s+\d+\s+slides\]',
+            r'\[Week\s+\d+\s+\([^)]+\)\]',
+            r'Week\s+\d+\s+slides',
+            r'Week\s+\d+'
+        ]
+        
+        has_actual_refs = any(re.search(pattern, related_section, re.IGNORECASE) for pattern in ref_patterns)
+        
+        if has_actual_refs:
+            return response  # Keep the response as-is
+        else:
+            return main_response  # Remove the empty Related Material section
+
     async def ask(self, question: str, session_id: str, k: Optional[int] = None) -> str:
         """
         Handles a user query by retrieving context, incorporating memory,
@@ -345,7 +374,7 @@ class MultiTurnManager:
             if response_facts:
                 self._key_facts[session_id].extend(response_facts)
             
-            return response
+            return self._clean_response_references(response, docs)
             
         except Exception as e:
             log.error(f"Failed to generate response for session {session_id[:8]}: {e}")

@@ -151,29 +151,31 @@ function App() {
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="flex h-14 shrink-0 items-center gap-2 sticky">
+        <header className="flex h-14 shrink-0 items-center gap-2 sticky">
             <div className="flex items-center gap-2 px-3">
               <SidebarTrigger />
             </div>
             <div>
               <p>SIT796 Reinforcement Learning</p>
             </div>
-            {/* ADD: Quiz button in header */}
-            <div className="ml-auto flex items-center gap-3 px-3">
-              <Button 
-                onClick={handleQuizClick}
-                size="sm"
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-sm"
-              >
-                <Brain className="h-4 w-4 mr-2" />
-                Take a Quiz!
-              </Button>
-              <div className="flex items-center gap-2 text-sm">
-                <div className="hidden font-medium text-muted-foreground md:inline-block">
-                  A2I2
+            {/* ADD: Quiz button in header - only show when in chat mode */}
+            {messages.length > 0 && (
+              <div className="ml-auto flex items-center gap-3 px-3">
+                <Button 
+                  onClick={handleQuizClick}
+                  size="sm"
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-sm"
+                >
+                  <Brain className="h-4 w-4 mr-2" />
+                  Take a Quiz!
+                </Button>
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="hidden font-medium text-muted-foreground md:inline-block">
+                    A2I2
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </header>
           <div className="flex flex-col h-[calc(100vh-3.5rem)]">
             <div className="flex-1 overflow-y-auto">
@@ -181,7 +183,8 @@ function App() {
                 <ChatMessages messages={messages} isStreaming={isStreaming} />
               ) : (
                 <ChatPrompts 
-                  onPromptSelect={handlePromptSelect} 
+                  onPromptSelect={handlePromptSelect}
+                  onQuizClick={handleQuizClick}
                 />
               )}
               <div ref={messagesEndRef} />

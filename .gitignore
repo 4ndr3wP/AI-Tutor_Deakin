@@ -36,6 +36,7 @@ _my_tests/
 measurement_system.py
 test_runner.py
 start_multi_for_testing.sh
+run_tests.py
 
 # My DB rebuild
 docling_Andrew.pyRL_db_reference_1k_500/

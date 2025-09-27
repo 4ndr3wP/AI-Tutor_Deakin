@@ -1,13 +1,5 @@
 # Start scripts
-start_backend.sh
-start_frontend.sh
-persistent_start_backend.sh
-persistent_start_frontend.sh
-persistent_start_all.sh
 start_watchmedo.sh
-dev-start.sh
-dev-stop.sh
-dev-restart.sh
 
 # Python
 __pycache__/

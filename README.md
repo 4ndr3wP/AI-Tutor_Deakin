@@ -153,3 +153,13 @@ The `_my_notes/Dev/` folder contains comprehensive development notes including:
 - `_my_notes/Dev/Behavior.md` - System behavior analysis
 - `_my_notes/Dev/1_Memory.md` - Memory management strategies
 - `_my_notes/Dev/2_Performance.md` - Performance optimization notes
+
+
+## Database
+The pre-built RAG database (`AI-Tutor/RL_db_reference_1k_500/`) is included in this repository. New developers can start using the AI-Tutor immediately without rebuilding the database.
+
+To rebuild the database from scratch (if needed):
+```bash
+cd AI-Tutor
+python docling_run.py --input-directory ./grouped_weeks --vector_db ./RL_db_reference_1k_500
+```

@@ -1,31 +1,19 @@
-# Start scripts
-start_watchmedo.sh
-
 # Python
 __pycache__/
 *.pyc
 
-# Chat history
-AI-Tutor/chat_history.json
-AI-Tutor/chat_history_single_Query.json
-
 # Local development tools
 auto_rsync.sh
+start_watchmedo.sh
 
 # IDE/Editor specific
 .vscode/
 .idea/
 *.swp
 
-# Notes about how the app works
-_my_notes/
-
 # My test files and info
 _my_tests/results/
 _my_tests/__pycache__/
-
-# My DB rebuild
-AI-Tutor/docling_Andrew.py
 
 # Personal configuration
 config.env

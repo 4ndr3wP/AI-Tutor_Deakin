@@ -100,7 +100,7 @@ python run_tests.py
 Run `./ai-tutor.sh` to see all available commands and their descriptions.
 
 **⚠️ Important:** 
-- Backend startup may take minute to load the 27GB microsoft/phi-4 model
+- Backend startup may take minutes to load the 27GB microsoft/phi-4 model
 - Services run in **persistent tmux sessions** - survive SSH disconnection
 - Use `tmux attach -t ai-backend` to monitor backend startup progress
 - Use `tmux attach -t ai-frontend` to monitor frontend
@@ -108,6 +108,12 @@ Run `./ai-tutor.sh` to see all available commands and their descriptions.
 ## 🔧 API Endpoints
 
 Visit `http://127.0.0.1:8000/docs` for complete interactive documentation.
+
+### Interactive API Documentation
+FastAPI automatically serves interactive documentation:
+- **Swagger UI**: `http://127.0.0.1:8000/docs`
+- **ReDoc**: `http://127.0.0.1:8000/redoc`  
+- **OpenAPI JSON**: `http://127.0.0.1:8000/openapi.json`
 
 Main endpoints:
 - **`GET /health`** - Health check and system status  
@@ -129,15 +135,47 @@ conda activate test_app
 
 ## 🧪 Testing
 
+The AI-Tutor includes a comprehensive test suite that can be run from anywhere in the project using the `run_tests.py` script.
+
+### Quick Start
 ```bash
-# Run full test suite
+# Activate the test environment first
+conda activate test_app
+
+# Run all tests
 python run_tests.py
 
 # Run specific test categories
-cd _my_tests
-python test_runner.py --category performance
-python test_runner.py --category memory
+python run_tests.py --test memory           # Test memory functionality and persistence
+python run_tests.py --test off-topic        # Test off-topic detection capabilities
+python run_tests.py --test performance      # Test system performance and response times
+python run_tests.py --test isolation        # Test session isolation and data separation
+python run_tests.py --test cold-start       # Test cold start vs warm start performance
+python run_tests.py --test hallucination    # Test hallucination detection mechanisms
+python run_tests.py --test socratic         # Test Socratic questioning methodology
+python run_tests.py --test gpu_stress       # Test GPU resource utilisation
+python run_tests.py --test reference_accuracy # Test reference accuracy and citation quality
+python run_tests.py --test ontrack_tasks    # Test OnTrack task retrieval functionality
 ```
+
+**Note:** The `run_tests.py` script allows you to run tests from anywhere in the project directory. It automatically navigates to the test directory and executes the appropriate test runner.
+
+**Note** The comprehensive test dataset (`_my_tests/golden_dataset.json`) contains all JSON test cases used by the test scripts when querying the API, including multi-turn conversations, session isolation scenarios, and performance benchmarks for the SIT796 Reinforcement Learning course. These tests were based, in part, off usage history of students.
+
+### Test Results
+Test results are automatically saved to `_my_tests/results/` with timestamped filenames:
+- **JSON files**: Detailed test outputs for each test category (memory, performance, GPU stress, etc.)
+- **CSV files**: GPU monitoring data including utilization, memory usage, and power consumption
+- **File naming**: `{test_type}_test_{YYYYMMDD}_{HHMMSS}.json` or `gpu_{YYYYMMDD}_{HHMMSS}.csv`
+
+Results are excluded from git to avoid repository bloat, but can be analyzed locally for performance tracking and debugging.
+
+### Test Infrastructure
+The test suite is built on a comprehensive measurement system (`_my_tests/measurement_system.py`) that provides:
+- Semantic similarity evaluation using the same Nomic model as the RAG system
+- Standardized test contexts and result data structures
+- Performance thresholds and benchmarking capabilities
+- Golden dataset integration for consistent test scenarios
 
 ## 📚 Development Documentation
 

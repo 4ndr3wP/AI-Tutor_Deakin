@@ -1,0 +1,1119 @@
+{
+  "SIT796_AI_TUTOR_GOLDEN_DATASET": {
+    "description": "Comprehensive test dataset for RAG-based AI tutoring system with multi-turn conversation and session isolation",
+    "version": "1.0",
+    "target_system": "LangChain + Vector Database",
+    "course": "SIT796 Reinforcement Learning"
+  },
+  "SESSION_ISOLATION_TESTS": {
+    "description": "Tests to verify complete user data isolation between concurrent sessions",
+    "success_criteria": "0% data bleeding between sessions, verified by response content analysis",
+    "concurrent_user_scenarios": [
+      {
+        "test_id": "SI_001",
+        "scenario": "Two students asking about different RL topics simultaneously",
+        "user_a_session": {
+          "questions": [
+            "What is the difference between Q-learning and SARSA?",
+            "Can you explain why Q-learning is off-policy?",
+            "How does the epsilon-greedy strategy work in Q-learning?"
+          ],
+          "expected_context": "Q-learning, off-policy methods, epsilon-greedy exploration"
+        },
+        "user_b_session": {
+          "questions": [
+            "What are the key components of a Markov Decision Process?",
+            "How do you calculate the Bellman equation for value functions?",
+            "What's the difference between value iteration and policy iteration?"
+          ],
+          "expected_context": "MDP components, Bellman equations, dynamic programming"
+        },
+        "isolation_check": "User A responses must not contain MDP/Bellman content, User B responses must not contain Q-learning content",
+        "measurement": "Content overlap percentage (target: 0%)"
+      },
+      {
+        "test_id": "SI_002",
+        "scenario": "Three students with overlapping topics but different conversation contexts",
+        "user_a_session": {
+          "questions": [
+            "I'm struggling with the cliff walking problem from the workshop",
+            "Why does SARSA take the safer path compared to Q-learning?",
+            "What happens if I increase epsilon in the cliff walking environment?"
+          ],
+          "expected_context": "Cliff walking, SARSA safety, epsilon parameter effects"
+        },
+        "user_b_session": {
+          "questions": [
+            "How do I implement SARSA for a grid world problem?",
+            "What's the update rule for SARSA?",
+            "Can you show me the SARSA algorithm pseudocode?"
+          ],
+          "expected_context": "SARSA implementation, update rules, algorithmic details"
+        },
+        "user_c_session": {
+          "questions": [
+            "What are eligibility traces in reinforcement learning?",
+            "How do SARSA(λ) and Q(λ) differ?",
+            "When should I use eligibility traces?"
+          ],
+          "expected_context": "Eligibility traces, lambda parameters, trace-based methods"
+        },
+        "isolation_check": "Each user's SARSA discussion should maintain distinct context (cliff walking vs implementation vs eligibility traces)",
+        "measurement": "Context drift analysis - responses should maintain user-specific discussion thread"
+      }
+    ],
+    "privacy_verification_tests": [
+      {
+        "test_id": "SI_003",
+        "scenario": "Student names and personal context isolation",
+        "user_sessions": [
+          {
+            "user_id": "student_alice",
+            "intro": "Hi, I'm Alice and I'm having trouble with assignment 1.1P on gym environments",
+            "follow_up": "Can you help me understand the MiniGrid-Empty-6x6-v0 environment?"
+          },
+          {
+            "user_id": "student_bob",
+            "intro": "Hello, I'm Bob working on the credit task 3.2C about epsilon strategies",
+            "follow_up": "How do I implement linearly decaying epsilon?"
+          }
+        ],
+        "cross_contamination_test": "Ask Alice about epsilon strategies - response should not mention Bob or credit task 3.2C",
+        "measurement": "Name/context leakage detection (target: 0 instances)"
+      }
+    ]
+  },
+  "MEMORY_PERSISTENCE_TESTS": {
+    "description": "Tests for conversation memory and context retention within individual sessions",
+    "success_criteria": "90%+ accuracy in pronoun resolution and context referencing",
+    "progressive_conversations": [
+      {
+        "test_id": "MP_001",
+        "topic": "Dynamic Programming progression",
+        "conversation_flow": [
+          {
+            "turn": 1,
+            "student": "What is dynamic programming in reinforcement learning?",
+            "expected_ai_response_elements": ["Bellman equations", "policy evaluation", "policy improvement", "model-based"]
+          },
+          {
+            "turn": 2, 
+            "student": "How does it differ from Monte Carlo methods?",
+            "context_test": "Should reference 'dynamic programming' from turn 1",
+            "expected_ai_response_elements": ["bootstrapping vs sampling", "model requirements", "episode completion"]
+          },
+          {
+            "turn": 3,
+            "student": "Can you explain the policy iteration algorithm we discussed?",
+            "context_test": "Should connect 'policy iteration' to dynamic programming context",
+            "expected_ai_response_elements": ["policy evaluation step", "policy improvement step", "convergence"]
+          },
+          {
+            "turn": 4,
+            "student": "What's the difference between that and value iteration?",
+            "context_test": "Should understand 'that' refers to policy iteration",
+            "expected_ai_response_elements": ["simultaneous updates", "computational efficiency", "convergence comparison"]
+          },
+          {
+            "turn": 5,
+            "student": "Which one should I use for my assignment?",
+            "context_test": "Should reference both policy iteration and value iteration from previous turns",
+            "expected_ai_response_elements": ["problem size considerations", "implementation complexity", "convergence speed"]
+          }
+        ]
+      },
+      {
+        "test_id": "MP_002",
+        "topic": "Deep RL implementation discussion",
+        "conversation_flow": [
+          {
+            "turn": 1,
+            "student": "I'm trying to implement DQN for CartPole environment",
+            "expected_ai_response_elements": ["experience replay", "target network", "epsilon-greedy exploration"]
+          },
+          {
+            "turn": 2,
+            "student": "What hyperparameters should I start with?",
+            "context_test": "Should reference DQN and CartPole from turn 1",
+            "expected_ai_response_elements": ["learning rate", "batch size", "replay buffer size", "target network update frequency"]
+          },
+          {
+            "turn": 3,
+            "student": "My agent isn't learning well. The loss keeps increasing.",
+            "context_test": "Should connect to DQN training context",
+            "expected_ai_response_elements": ["gradient clipping", "learning rate adjustment", "network architecture", "reward scaling"]
+          },
+          {
+            "turn": 4,
+            "student": "Should I try double DQN instead?",
+            "context_test": "Should reference current DQN problems and suggest improvements",
+            "expected_ai_response_elements": ["maximization bias", "overestimation issues", "double DQN benefits"]
+          },
+          {
+            "turn": 5,
+            "student": "How do I modify my current code for that?",
+            "context_test": "Should reference the transition from DQN to double DQN",
+            "expected_ai_response_elements": ["target selection changes", "Q-value computation", "minimal code modifications"]
+          }
+        ]
+      },
+      {
+        "test_id": "MP_004", 
+        "topic": "Explicit recall testing",
+        "conversation_flow": [
+          {
+            "turn": 1,
+            "student": "I'm working on a CartPole DQN implementation using learning rate 0.001",
+            "expected_ai_response_elements": ["DQN", "CartPole", "implementation"]
+          },
+          {
+            "turn": 2,
+            "student": "My batch size is 32 and I'm using experience replay buffer of 10000",
+            "expected_ai_response_elements": ["batch size", "experience replay", "buffer"]
+          },
+          {
+            "turn": 3,
+            "student": "The target network update frequency is every 100 steps",
+            "expected_ai_response_elements": ["target network", "update frequency"]
+          },
+          {
+            "turn": 4,
+            "student": "I'm using epsilon decay from 1.0 to 0.01 over 1000 episodes",
+            "expected_ai_response_elements": ["epsilon decay", "exploration"]
+          },
+          {
+            "turn": 8,
+            "student": "What was the learning rate I mentioned earlier?",
+            "expected_ai_response_elements": ["0.001", "learning rate"],
+            "memory_test": "Must recall specific learning rate from turn 1"
+          },
+          {
+            "turn": 12,
+            "student": "What was the first problem I told you I was working on?", 
+            "expected_ai_response_elements": ["CartPole", "DQN"],
+            "memory_test": "Must recall initial problem from turn 1"
+          }
+        ]
+      },
+      {
+        "test_id": "MP_005",
+        "topic": "Reference chain persistence",
+        "conversation_flow": [
+          {
+            "turn": 1,
+            "student": "What's the difference between Q-learning and SARSA?",
+            "expected_ai_response_elements": ["off-policy", "on-policy", "safety"]
+          },
+          {
+            "turn": 2,
+            "student": "Which one would be better for robot navigation in dangerous environments?",
+            "context_test": "Should understand question refers to Q-learning vs SARSA comparison",
+            "expected_ai_response_elements": ["SARSA", "safer", "exploration"]
+          },
+          {
+            "turn": 3,
+            "student": "Why is that method safer for robots?",
+            "context_test": "Should understand 'that method' refers to SARSA",
+            "expected_ai_response_elements": ["on-policy", "conservative", "cliff walking"]
+          },
+          {
+            "turn": 4,
+            "student": "Can you give me the update equation for it?",
+            "context_test": "Should understand 'it' refers to SARSA",
+            "expected_ai_response_elements": ["SARSA update", "Q(S,A)", "next action"]
+          },
+          {
+            "turn": 5,
+            "student": "How does this compare to the other algorithm we discussed?",
+            "context_test": "Should understand 'other algorithm' refers to Q-learning",
+            "expected_ai_response_elements": ["Q-learning", "max action", "off-policy"]
+          }
+        ]
+      },
+      {
+        "test_id": "MP_006", 
+        "topic": "Long conversation persistence",
+        "conversation_flow": [
+          {
+            "turn": 1,
+            "student": "I'm studying reinforcement learning for my thesis on autonomous drones",
+            "expected_ai_response_elements": ["autonomous", "drones", "thesis"]
+          },
+          {
+            "turn": 3,
+            "student": "My supervisor suggested looking into policy gradient methods",
+            "expected_ai_response_elements": ["policy gradient", "supervisor"]
+          },
+          {
+            "turn": 5,
+            "student": "My drone needs to learn landing patterns in windy conditions",
+            "expected_ai_response_elements": ["landing", "windy", "conditions"]
+          },
+          {
+            "turn": 8,
+            "student": "The action space is continuous with 4 dimensions",
+            "expected_ai_response_elements": ["continuous", "action space", "dimensions"]
+          },
+          {
+            "turn": 10,
+            "student": "I'm considering policy gradient methods like PPO",
+            "expected_ai_response_elements": ["PPO", "policy gradient"]
+          },
+          {
+            "turn": 12,
+            "student": "The reward function includes safety penalties for harsh landings",
+            "expected_ai_response_elements": ["reward function", "safety", "penalties"]
+          },
+          {
+            "turn": 15,
+            "student": "The action space includes throttle, pitch, roll, and yaw controls",
+            "expected_ai_response_elements": ["throttle", "pitch", "roll", "yaw"]
+          },
+          {
+            "turn": 18,
+            "student": "Training episodes last 60 seconds of simulated flight time",
+            "expected_ai_response_elements": ["training", "episodes", "60 seconds"]
+          },
+          {
+            "turn": 20,
+            "student": "Going back to my thesis topic, what was the original application I mentioned?",
+            "memory_test": "Must recall 'autonomous drones' from turn 1 after 19 intervening turns",
+            "expected_ai_response_elements": ["autonomous drones", "thesis"]
+          }
+        ]
+      },
+      {
+        "test_id": "MP_007",
+        "topic": "Technical detail retention", 
+        "conversation_flow": [
+          {
+            "turn": 1,
+            "student": "I'm implementing DDPG with actor learning rate 0.0001 and critic learning rate 0.001",
+            "expected_ai_response_elements": ["DDPG", "actor", "critic", "learning rate"]
+          },
+          {
+            "turn": 2,
+            "student": "My action noise is 0.2 and I'm using tau=0.005 for soft updates",
+            "expected_ai_response_elements": ["action noise", "tau", "soft updates"]
+          },
+          {
+            "turn": 3,
+            "student": "The replay buffer size is 1e6 and batch size is 128",
+            "expected_ai_response_elements": ["replay buffer", "1e6", "batch size", "128"]
+          },
+          {
+            "turn": 4,
+            "student": "I'm using Ornstein-Uhlenbeck noise for exploration",
+            "expected_ai_response_elements": ["Ornstein-Uhlenbeck", "noise", "exploration"]
+          },
+          {
+            "turn": 5,
+            "student": "The discount factor gamma is 0.99",
+            "expected_ai_response_elements": ["discount factor", "gamma", "0.99"]
+          },
+          {
+            "turn": 8,
+            "student": "What was my tau value for the target network updates?",
+            "expected_ai_response_elements": ["0.005", "tau", "soft update"],
+            "memory_test": "Must recall specific hyperparameter from turn 2"
+          },
+          {
+            "turn": 10,
+            "student": "And what about my actor vs critic learning rates?",
+            "expected_ai_response_elements": ["0.0001", "0.001", "actor", "critic"],
+            "memory_test": "Must distinguish between two different learning rates from turn 1"
+          },
+          {
+            "turn": 12,
+            "student": "Remind me what type of noise I'm using for exploration?",
+            "expected_ai_response_elements": ["Ornstein-Uhlenbeck", "noise"],
+            "memory_test": "Must recall noise type from turn 4"
+          }
+        ]
+      },
+      {
+        "test_id": "MP_LONG_001",
+        "topic": "Extended deep RL discussion",
+        "conversation_flow": [
+          {"turn": 1, "student": "I'm working on a Deep Q-Network for Atari games", "expected_ai_response_elements": ["DQN", "Atari", "deep", "Q-learning"]},
+          {"turn": 2, "student": "What's the difference between DQN and regular Q-learning?", "expected_ai_response_elements": ["neural network", "function approximation", "table"]},
+          {"turn": 3, "student": "Why do we need experience replay in DQN?", "expected_ai_response_elements": ["experience replay", "sample efficiency", "correlation"]},
+          {"turn": 4, "student": "How big should my replay buffer be?", "expected_ai_response_elements": ["buffer size", "memory", "storage"]},
+          {"turn": 5, "student": "What about the target network? Why is it needed?", "expected_ai_response_elements": ["target network", "stability", "moving target"]},
+          {"turn": 6, "student": "How often should I update the target network?", "expected_ai_response_elements": ["update frequency", "steps", "episodes"]},
+          {"turn": 7, "student": "What learning rate should I use for the neural network?", "expected_ai_response_elements": ["learning rate", "0.001", "optimization"]},
+          {"turn": 8, "student": "Should I use epsilon-greedy exploration?", "expected_ai_response_elements": ["epsilon-greedy", "exploration", "exploitation"]},
+          {"turn": 9, "student": "How should epsilon decay over time?", "expected_ai_response_elements": ["epsilon decay", "schedule", "linear"]},
+          {"turn": 10, "student": "What network architecture works best for Atari?", "expected_ai_response_elements": ["convolutional", "CNN", "layers"]},
+          {"turn": 11, "student": "How many convolutional layers should I use?", "expected_ai_response_elements": ["conv layers", "3", "depth"]},
+          {"turn": 12, "student": "What about the fully connected layers?", "expected_ai_response_elements": ["fully connected", "dense", "hidden"]},
+          {"turn": 13, "student": "How do I preprocess the Atari frames?", "expected_ai_response_elements": ["preprocessing", "grayscale", "resize"]},
+          {"turn": 14, "student": "Should I stack multiple frames together?", "expected_ai_response_elements": ["frame stacking", "history", "temporal"]},
+          {"turn": 15, "student": "What batch size should I use for training?", "expected_ai_response_elements": ["batch size", "32", "training"]},
+          {"turn": 16, "student": "How many training steps before I see results?", "expected_ai_response_elements": ["training steps", "convergence", "patience"]},
+          {"turn": 17, "student": "What's Double DQN and should I use it?", "expected_ai_response_elements": ["Double DQN", "overestimation", "bias"]},
+          {"turn": 18, "student": "How does Dueling DQN work?", "expected_ai_response_elements": ["Dueling DQN", "value", "advantage"]},
+          {"turn": 19, "student": "Should I implement prioritized experience replay?", "expected_ai_response_elements": ["prioritized", "importance", "sampling"]},
+          {"turn": 20, "student": "What loss function should I use?", "expected_ai_response_elements": ["loss function", "MSE", "Huber"]},
+          {"turn": 21, "student": "How do I handle the discount factor gamma?", "expected_ai_response_elements": ["discount factor", "gamma", "0.99"]},
+          {"turn": 22, "student": "What optimizer works best - Adam or RMSprop?", "expected_ai_response_elements": ["optimizer", "Adam", "RMSprop"]},
+          {"turn": 23, "student": "How do I debug when my DQN isn't learning?", "expected_ai_response_elements": ["debugging", "learning", "troubleshooting"]},
+          {"turn": 24, "student": "Should I use gradient clipping?", "expected_ai_response_elements": ["gradient clipping", "stability", "exploding"]},
+          {"turn": 25, "student": "What was the first thing I said I was working on?", "expected_ai_response_elements": ["DQN", "Atari"], "memory_test": "Must recall from turn 1"},
+          {"turn": 26, "student": "And what learning rate did we discuss earlier?", "expected_ai_response_elements": ["0.001", "learning rate"], "memory_test": "Must recall from turn 7"}
+        ]
+      },
+      {
+        "test_id": "MP_LONG_002",
+        "topic": "Multi-agent reinforcement learning project",
+        "conversation_flow": [
+          {"turn": 1, "student": "I'm building a multi-agent system for traffic control with 5 agents", "expected_ai_response_elements": ["multi-agent", "traffic control", "5 agents"]},
+          {"turn": 2, "student": "Each agent controls one intersection in the city", "expected_ai_response_elements": ["intersection", "control", "city"]},
+          {"turn": 3, "student": "Should I use centralized or decentralized training?", "expected_ai_response_elements": ["centralized", "decentralized", "training"]},
+          {"turn": 4, "student": "What's the difference between CTDE and fully centralized?", "expected_ai_response_elements": ["CTDE", "centralized training", "decentralized execution"]},
+          {"turn": 5, "student": "How do agents share information during execution?", "expected_ai_response_elements": ["communication", "information sharing", "execution"]},
+          {"turn": 6, "student": "What observation space should each agent have?", "expected_ai_response_elements": ["observation space", "local", "partial"]},
+          {"turn": 7, "student": "Should agents see the global state or just local?", "expected_ai_response_elements": ["global state", "local state", "observability"]},
+          {"turn": 8, "student": "How do I design the reward function for traffic flow?", "expected_ai_response_elements": ["reward function", "traffic flow", "optimization"]},
+          {"turn": 9, "student": "Should I penalize waiting time or reward throughput?", "expected_ai_response_elements": ["waiting time", "throughput", "penalty"]},
+          {"turn": 10, "student": "What about coordination between neighboring intersections?", "expected_ai_response_elements": ["coordination", "neighboring", "cooperation"]},
+          {"turn": 11, "student": "How do I handle the credit assignment problem?", "expected_ai_response_elements": ["credit assignment", "contribution", "reward"]},
+          {"turn": 12, "student": "Should I use MADDPG or MAPPO for this?", "expected_ai_response_elements": ["MADDPG", "MAPPO", "algorithm"]},
+          {"turn": 13, "student": "What's the difference between those two algorithms?", "expected_ai_response_elements": ["actor-critic", "policy gradient", "value-based"]},
+          {"turn": 14, "student": "How many episodes do I need to train?", "expected_ai_response_elements": ["episodes", "training", "convergence"]},
+          {"turn": 15, "student": "What network architecture for each agent?", "expected_ai_response_elements": ["network architecture", "neural network", "layers"]},
+          {"turn": 16, "student": "Should all agents share the same network?", "expected_ai_response_elements": ["parameter sharing", "individual", "networks"]},
+          {"turn": 17, "student": "How do I simulate realistic traffic patterns?", "expected_ai_response_elements": ["simulation", "traffic patterns", "realistic"]},
+          {"turn": 18, "student": "What about emergency vehicles that need priority?", "expected_ai_response_elements": ["emergency vehicles", "priority", "special cases"]},
+          {"turn": 19, "student": "How do I evaluate the system performance?", "expected_ai_response_elements": ["evaluation", "metrics", "performance"]},
+          {"turn": 20, "student": "Should I compare against fixed-time signals?", "expected_ai_response_elements": ["baseline", "fixed-time", "comparison"]},
+          {"turn": 21, "student": "What about safety constraints for pedestrians?", "expected_ai_response_elements": ["safety", "constraints", "pedestrians"]},
+          {"turn": 22, "student": "How do I handle non-stationary traffic patterns?", "expected_ai_response_elements": ["non-stationary", "adaptation", "changing"]},
+          {"turn": 23, "student": "What hyperparameters should I tune first?", "expected_ai_response_elements": ["hyperparameters", "tuning", "optimization"]},
+          {"turn": 24, "student": "How do I visualize the learning progress?", "expected_ai_response_elements": ["visualization", "progress", "monitoring"]},
+          {"turn": 25, "student": "What was my original project about?", "expected_ai_response_elements": ["multi-agent", "traffic control"], "memory_test": "Must recall from turn 1"},
+          {"turn": 26, "student": "How many agents did I say I was using?", "expected_ai_response_elements": ["5 agents"], "memory_test": "Must recall from turn 1"},
+          {"turn": 27, "student": "What algorithms did we discuss for this problem?", "expected_ai_response_elements": ["MADDPG", "MAPPO"], "memory_test": "Must recall from turn 12"}
+        ]
+      },
+      {
+        "test_id": "MP_LONG_003",
+        "topic": "Robotics reinforcement learning implementation",
+        "conversation_flow": [
+          {"turn": 1, "student": "I'm training a robotic arm with 7 degrees of freedom for object manipulation", "expected_ai_response_elements": ["robotic arm", "7 degrees", "freedom", "manipulation"]},
+          {"turn": 2, "student": "The robot needs to pick up objects of different shapes and sizes", "expected_ai_response_elements": ["pick up", "objects", "shapes", "sizes"]},
+          {"turn": 3, "student": "Should I use continuous or discrete action spaces?", "expected_ai_response_elements": ["continuous", "discrete", "action space"]},
+          {"turn": 4, "student": "What's better for robotics - DDPG or PPO?", "expected_ai_response_elements": ["DDPG", "PPO", "robotics"]},
+          {"turn": 5, "student": "How do I design the state representation?", "expected_ai_response_elements": ["state representation", "features", "encoding"]},
+          {"turn": 6, "student": "Should I include joint angles and velocities?", "expected_ai_response_elements": ["joint angles", "velocities", "kinematics"]},
+          {"turn": 7, "student": "What about visual input from cameras?", "expected_ai_response_elements": ["visual input", "cameras", "perception"]},
+          {"turn": 8, "student": "How do I fuse proprioceptive and visual data?", "expected_ai_response_elements": ["fusion", "proprioceptive", "visual", "sensors"]},
+          {"turn": 9, "student": "What reward function works for manipulation tasks?", "expected_ai_response_elements": ["reward function", "manipulation", "dense", "sparse"]},
+          {"turn": 10, "student": "Should I use sparse rewards or dense rewards?", "expected_ai_response_elements": ["sparse rewards", "dense rewards", "shaping"]},
+          {"turn": 11, "student": "How do I handle safety constraints for the robot?", "expected_ai_response_elements": ["safety constraints", "limits", "boundaries"]},
+          {"turn": 12, "student": "What about collision detection and avoidance?", "expected_ai_response_elements": ["collision detection", "avoidance", "safety"]},
+          {"turn": 13, "student": "How do I simulate realistic physics for training?", "expected_ai_response_elements": ["simulation", "physics", "realistic"]},
+          {"turn": 14, "student": "Should I use domain randomization?", "expected_ai_response_elements": ["domain randomization", "generalization", "robustness"]},
+          {"turn": 15, "student": "What parameters should I randomize?", "expected_ai_response_elements": ["parameters", "randomize", "variation"]},
+          {"turn": 16, "student": "How do I transfer from simulation to real robot?", "expected_ai_response_elements": ["sim-to-real", "transfer", "reality gap"]},
+          {"turn": 17, "student": "What's the reality gap and how do I minimize it?", "expected_ai_response_elements": ["reality gap", "minimize", "domain transfer"]},
+          {"turn": 18, "student": "Should I use imitation learning first?", "expected_ai_response_elements": ["imitation learning", "demonstration", "bootstrap"]},
+          {"turn": 19, "student": "How many demonstrations do I need to collect?", "expected_ai_response_elements": ["demonstrations", "data", "collection"]},
+          {"turn": 20, "student": "What's the best way to collect human demonstrations?", "expected_ai_response_elements": ["human demonstrations", "teleoperation", "kinesthetic"]},
+          {"turn": 21, "student": "How do I handle partial observability in manipulation?", "expected_ai_response_elements": ["partial observability", "occlusion", "uncertainty"]},
+          {"turn": 22, "student": "Should I use recurrent networks for memory?", "expected_ai_response_elements": ["recurrent networks", "LSTM", "memory"]},
+          {"turn": 23, "student": "What about curriculum learning for complex tasks?", "expected_ai_response_elements": ["curriculum learning", "progressive", "difficulty"]},
+          {"turn": 24, "student": "How do I evaluate grasping success rates?", "expected_ai_response_elements": ["evaluation", "grasping", "success rate"]},
+          {"turn": 25, "student": "What type of robot was I working with originally?", "expected_ai_response_elements": ["robotic arm", "7 degrees"], "memory_test": "Must recall from turn 1"},
+          {"turn": 26, "student": "What task was the robot supposed to do?", "expected_ai_response_elements": ["object manipulation", "pick up"], "memory_test": "Must recall from turns 1-2"},
+          {"turn": 27, "student": "What algorithms did we compare for this robotics task?", "expected_ai_response_elements": ["DDPG", "PPO"], "memory_test": "Must recall from turn 4"}
+        ]
+      } 
+    ],
+
+    "pronoun_resolution_tests": [
+      {
+        "test_id": "MP_003",
+        "conversation": [
+          {
+            "turn": 1,
+            "student": "I'm working on my PhD thesis about multi-agent reinforcement learning in autonomous vehicle coordination",
+            "expected_ai_response_elements": ["multi-agent", "reinforcement learning", "autonomous vehicle", "coordination", "PhD thesis"]
+          },
+          {
+            "turn": 5,
+            "student": "My advisor suggested using centralized training with decentralized execution",
+            "expected_ai_response_elements": ["centralized training", "decentralized execution", "advisor"]
+          },
+          {
+            "turn": 10,
+            "student": "The environment has 8 vehicles at intersections with partial observability",
+            "expected_ai_response_elements": ["8 vehicles", "intersections", "partial observability"]
+          },
+          {
+            "turn": 15,
+            "student": "I'm implementing MADDPG with actor learning rate 0.0001 and critic learning rate 0.001",
+            "expected_ai_response_elements": ["MADDPG", "actor", "critic", "0.0001", "0.001"]
+          },
+          {
+            "turn": 20,
+            "student": "The state space includes position, velocity, and local traffic density for each vehicle",
+            "expected_ai_response_elements": ["state space", "position", "velocity", "traffic density"]
+          },
+          {
+            "turn": 25,
+            "student": "Action space is continuous: acceleration, steering angle, and lane change decisions",
+            "expected_ai_response_elements": ["continuous", "acceleration", "steering angle", "lane change"]
+          },
+          {
+            "turn": 30,
+            "student": "Reward function includes collision avoidance (-100), traffic flow efficiency (+10), and fuel consumption penalties",
+            "expected_ai_response_elements": ["reward function", "collision avoidance", "-100", "traffic flow", "+10", "fuel consumption"]
+          },
+          {
+            "turn": 35,
+            "student": "Training episodes last 300 simulation steps with real-time traffic patterns",
+            "expected_ai_response_elements": ["300 simulation steps", "real-time", "traffic patterns"]
+          },
+          {
+            "turn": 40,
+            "student": "What was the original thesis topic I mentioned at the beginning?",
+            "expected_ai_response_elements": ["multi-agent reinforcement learning", "autonomous vehicle coordination", "PhD thesis"],
+            "memory_test": "Must recall thesis topic from turn 1 after 39 intervening turns"
+          },
+          {
+            "turn": 42,
+            "student": "And what were my actor and critic learning rates from earlier?",
+            "expected_ai_response_elements": ["0.0001", "0.001", "actor", "critic"],
+            "memory_test": "Must recall specific hyperparameters from turn 15"
+          },
+          {
+            "turn": 45,
+            "student": "Remind me of the penalty value for collisions in my reward function?",
+            "expected_ai_response_elements": ["-100", "collision", "penalty"],
+            "memory_test": "Must recall specific reward value from turn 30"
+          }
+        ]
+      },
+      {
+        "test_id": "MP_LONG_002", 
+        "topic": "Comprehensive deep RL implementation with technical details",
+        "conversation_flow": [
+          {
+            "turn": 1,
+            "student": "I'm implementing a Double DQN for Atari Breakout with experience replay buffer size 1000000",
+            "expected_ai_response_elements": ["Double DQN", "Atari Breakout", "experience replay", "1000000"]
+          },
+          {
+            "turn": 3,
+            "student": "Network architecture: 3 conv layers (32, 64, 64 filters) with ReLU activation",
+            "expected_ai_response_elements": ["3 conv layers", "32", "64", "ReLU"]
+          },
+          {
+            "turn": 7,
+            "student": "Target network update frequency is every 1000 steps with hard updates",
+            "expected_ai_response_elements": ["target network", "1000 steps", "hard updates"]
+          },
+          {
+            "turn": 12,
+            "student": "Epsilon decay schedule: start=1.0, end=0.01, decay_steps=1000000",
+            "expected_ai_response_elements": ["epsilon decay", "1.0", "0.01", "1000000"]
+          },
+          {
+            "turn": 18,
+            "student": "Optimizer is Adam with learning rate 0.00025 and gradient clipping at 1.0",
+            "expected_ai_response_elements": ["Adam", "0.00025", "gradient clipping", "1.0"]
+          },
+          {
+            "turn": 25,
+            "student": "Frame preprocessing: resize to 84x84, convert to grayscale, frame stack of 4",
+            "expected_ai_response_elements": ["84x84", "grayscale", "frame stack", "4"]
+          },
+          {
+            "turn": 32,
+            "student": "Training batch size is 32 with discount factor gamma=0.99",
+            "expected_ai_response_elements": ["batch size", "32", "gamma", "0.99"]
+          },
+          {
+            "turn": 38,
+            "student": "Loss function is Huber loss with delta=1.0 for stability",
+            "expected_ai_response_elements": ["Huber loss", "delta", "1.0", "stability"]
+          },
+          {
+            "turn": 43,
+            "student": "What was the game environment I mentioned at the start?",
+            "expected_ai_response_elements": ["Atari Breakout"],
+            "memory_test": "Must recall game environment from turn 1"
+          },
+          {
+            "turn": 46,
+            "student": "And what was my experience replay buffer size?",
+            "expected_ai_response_elements": ["1000000", "experience replay", "buffer"],
+            "memory_test": "Must recall buffer size from turn 1"
+          },
+          {
+            "turn": 50,
+            "student": "What were the three convolutional layer filter sizes I specified?",
+            "expected_ai_response_elements": ["32", "64", "64", "conv", "filters"],
+            "memory_test": "Must recall conv layer details from turn 3"
+          }
+        ]
+      },
+      {
+        "test_id": "MP_LONG_003",
+        "topic": "Multi-domain RL discussion with context switches",
+        "conversation_flow": [
+          {
+            "turn": 1,
+            "student": "I'm comparing policy gradient methods for robotics applications, specifically REINFORCE vs PPO",
+            "expected_ai_response_elements": ["policy gradient", "robotics", "REINFORCE", "PPO"]
+          },
+          {
+            "turn": 8,
+            "student": "The robot has 7 degrees of freedom with continuous joint control",
+            "expected_ai_response_elements": ["7 degrees", "freedom", "continuous", "joint control"]
+          },
+          {
+            "turn": 15,
+            "student": "Let me switch topics - I'm also working on financial trading using deep Q-networks",
+            "expected_ai_response_elements": ["financial trading", "deep Q-networks"]
+          },
+          {
+            "turn": 22,
+            "student": "Market data includes OHLCV prices, volume indicators, and sentiment scores",
+            "expected_ai_response_elements": ["OHLCV", "volume", "sentiment scores"]
+          },
+          {
+            "turn": 30,
+            "student": "Action space for trading: buy (0-100%), sell (0-100%), or hold",
+            "expected_ai_response_elements": ["buy", "sell", "hold", "0-100%"]
+          },
+          {
+            "turn": 37,
+            "student": "Back to robotics - the reward function includes task completion and energy efficiency",
+            "expected_ai_response_elements": ["robotics", "task completion", "energy efficiency"]
+          },
+          {
+            "turn": 44,
+            "student": "What was the original robotics comparison I asked about?",
+            "expected_ai_response_elements": ["REINFORCE", "PPO", "policy gradient", "robotics"],
+            "memory_test": "Must recall original robotics question from turn 1 despite topic switches"
+          },
+          {
+            "turn": 47,
+            "student": "And how many degrees of freedom did I mention for the robot?",
+            "expected_ai_response_elements": ["7 degrees", "freedom"],
+            "memory_test": "Must recall robot DOF from turn 8"
+          },
+          {
+            "turn": 50,
+            "student": "For the trading system, what were the three action types I described?",
+            "expected_ai_response_elements": ["buy", "sell", "hold"],
+            "memory_test": "Must recall trading actions from turn 30"
+          }
+        ]
+      } 
+    ],
+
+    "pronoun_resolution_tests": [
+      {
+        "test_id": "MP_003",
+        "conversation": [
+          "What's the difference between on-policy and off-policy methods?",
+          "Can you give me examples of each?",
+          "Which ones are more sample efficient?",
+          "Why is that the case?",
+          "How does this relate to exploration strategies?"
+        ],
+        "pronoun_targets": ["each", "ones", "that", "this"],
+        "measurement": "Accuracy of pronoun reference resolution"
+      }
+    ]
+  },
+  "KNOWLEDGE_ACCURACY_TESTS": {
+    "description": "Compare knowledge accuracy between single-turn and multi-turn contexts",
+    "success_criteria": "Multi-turn responses should maintain or exceed single-turn accuracy",
+    "single_vs_multi_turn_comparisons": [
+      {
+        "test_id": "KA_001",
+        "topic": "Q-learning algorithm understanding",
+        "single_turn": {
+          "question": "Explain the Q-learning algorithm and how it works",
+          "expected_key_points": [
+            "off-policy",
+            "temporal difference",
+            "Q-table updates",
+            "epsilon-greedy",
+            "Bellman equation"
+          ],
+          "accuracy_baseline": "Expert-validated response scoring"
+        },
+        "multi_turn": {
+          "conversation": [
+            "I'm confused about temporal difference methods",
+            "How does Q-learning fit into TD methods?",
+            "Can you explain the Q-learning algorithm specifically?",
+            "How does it update the Q-values?",
+            "Why is it called off-policy?"
+          ],
+          "context_advantages": "Should provide more detailed, contextual explanation",
+          "measurement": "Compare final Q-learning explanation quality to single-turn baseline"
+        }
+      },
+      {
+        "test_id": "KA_002",
+        "topic": "Policy gradient methods",
+        "single_turn": {
+          "question": "What are policy gradient methods and when should I use them?",
+          "expected_key_points": [
+            "direct policy optimization",
+            "continuous actions",
+            "REINFORCE",
+            "actor-critic",
+            "gradient ascent"
+          ]
+        },
+        "multi_turn": {
+          "conversation": [
+            "I've been using value-based methods like Q-learning",
+            "What are the limitations of value-based approaches?",
+            "Are there alternatives that work better for continuous actions?",
+            "Can you explain policy gradient methods?",
+            "When should I choose policy gradients over Q-learning?"
+          ],
+          "measurement": "Quality and depth of policy gradient explanation after contextual buildup"
+        }
+      }
+    ],
+    "cross_week_integration_tests": [
+      {
+        "test_id": "KA_003",
+        "scenario": "Integration across multiple course weeks",
+        "question_sequence": [
+          "How do Markov Decision Processes relate to the reinforcement learning problem? (Week 2)",
+          "How does dynamic programming solve MDPs? (Week 3)",
+          "What are the limitations of dynamic programming that Monte Carlo methods address? (Week 4)",
+          "How do temporal difference methods like Q-learning improve on Monte Carlo? (Week 5)",
+          "How do we extend Q-learning to continuous state spaces using function approximation? (Week 7)",
+          "What are the challenges with deep Q-networks and how does policy gradients address them? (Week 8)"
+        ],
+        "integration_test": "Final response should demonstrate understanding of the progression from MDPs → DP → MC → TD → Function Approximation → Deep RL",
+        "measurement": "Coherence and accuracy of integrated knowledge explanation"
+      }
+    ]
+  },
+  "CONTEXT_SWITCHING_TESTS": {
+    "description": "Test system's ability to handle topic transitions within conversations",
+    "success_criteria": "Relevance score >80% for responses immediately after topic switch",
+    "topic_transition_scenarios": [
+      {
+        "test_id": "CS_001",
+        "scenario": "Abrupt topic change within same domain",
+        "conversation": [
+          "Can you help me understand the difference between SARSA and Q-learning?",
+          "How does epsilon-greedy exploration work in these algorithms?",
+          "Actually, let me ask about something else - what are eligibility traces?",
+          "How do eligibility traces work with SARSA?",
+          "Do they also work with Q-learning?"
+        ],
+        "topic_switches": [
+          {
+            "turn": 3,
+            "from": "epsilon-greedy exploration",
+            "to": "eligibility traces"
+          }
+        ],
+        "measurement": "Response relevance to new topic vs continued old topic discussion"
+      },
+      {
+        "test_id": "CS_002",
+        "scenario": "Cross-domain topic switching",
+        "conversation": [
+          "I'm working on dynamic programming for my assignment",
+          "Can you explain value iteration?",
+          "Actually, I'm more interested in deep reinforcement learning now",
+          "How does DQN work?",
+          "What about policy gradient methods?"
+        ],
+        "topic_switches": [
+          {
+            "turn": 3,
+            "from": "dynamic programming/value iteration",
+            "to": "deep reinforcement learning"
+          }
+        ],
+        "measurement": "Clean transition handling and topic-appropriate responses"
+      },
+      {
+        "test_id": "CS_003",
+        "scenario": "Returning to previous topic",
+        "conversation": [
+          "What's the difference between model-based and model-free RL?",
+          "Can you give examples of model-based methods?",
+          "Let me ask about neural networks - how are they used in RL?",
+          "What about convolutional neural networks specifically?",
+          "Going back to our earlier discussion, what are examples of model-free methods?"
+        ],
+        "topic_switches": [
+          {
+            "turn": 3,
+            "from": "model-based methods",
+            "to": "neural networks"
+          },
+          {
+            "turn": 5,
+            "from": "neural networks",
+            "back_to": "model-based/model-free discussion"
+          }
+        ],
+        "measurement": "Ability to recall and continue previous conversation thread"
+      }
+    ]
+  },
+  "EDGE_CASE_TESTS": {
+    "description": "Test system robustness with invalid inputs and stress conditions",
+    "success_criteria": "Graceful handling of all edge cases with appropriate error messages",
+    "invalid_input_tests": [
+      {
+        "test_id": "EC_001",
+        "inputs": [
+          "",
+          "   ",
+          "????????????????",
+          "SELECT * FROM users WHERE id = 1; DROP TABLE users;",
+          "What is aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-long-string?",
+          "🤖🎯💻🧠🔥 RL question with only emojis",
+          "asdfghjklqwertyuiop"
+        ],
+        "expected_behavior": "Polite error handling, request for clarification",
+        "measurement": "No system crashes, appropriate error responses"
+      }
+    ],
+    "rapid_fire_tests": [
+      {
+        "test_id": "EC_002",
+        "scenario": "Multiple quick questions in succession",
+        "questions": [
+          "What is Q-learning?",
+          "What is SARSA?",
+          "What is DQN?",
+          "What is policy gradient?",
+          "What is actor-critic?",
+          "What is DDPG?",
+          "What is A3C?",
+          "What is PPO?",
+          "What is SAC?",
+          "What is TD3?"
+        ],
+        "timing": "Submitted within 30 seconds",
+        "measurement": "System responsiveness and answer quality under load"
+      }
+    ],
+    "conversation_interruption_tests": [
+      {
+        "test_id": "EC_003",
+        "scenario": "Conversation restart after interruption",
+        "setup": [
+          "Start normal conversation about reinforcement learning",
+          "After 5 exchanges, simulate session timeout/interruption",
+          "Restart conversation with 'Can you continue where we left off?'"
+        ],
+        "expected_behavior": "Graceful handling of session loss, appropriate response",
+        "measurement": "User experience quality despite technical interruption"
+      }
+    ],
+    "boundary_condition_tests": [
+      {
+        "test_id": "EC_004",
+        "scenarios": [
+          {
+            "condition": "Maximum context length",
+            "test": "Very long conversation reaching token limits",
+            "measurement": "Graceful truncation and context management"
+          },
+          {
+            "condition": "Simultaneous user load",
+            "test": "100+ concurrent users asking questions",
+            "measurement": "Response time and quality under load"
+          },
+          {
+            "condition": "Memory exhaustion",
+            "test": "Extremely long conversation with complex context",
+            "measurement": "Memory management and performance degradation"
+          }
+        ]
+      }
+    ]
+  },
+  "RETRIEVAL_CONSISTENCY_TESTS": {
+    "description": "Repeated queries should yield consistent retrieval behavior",
+    "success_criteria": "No contradiction across repeated attempts for same task",
+    "consistency_scenarios": [
+      {
+        "test_id": "RC_001",
+        "scenario": "Repeated queries for known-problem task 7.1P",
+        "session_id_prefix": "rc_7_1p",
+        "turns": [
+          {
+            "turn": 1,
+            "question": "Do you have Task 7.1P?",
+            "expected_behavior": "If unknown, acknowledge lack of info"
+          },
+          {
+            "turn": 2,
+            "question": "Can you check again for Task 7.1P?",
+            "expected_behavior": "Consistent with turn 1"
+          },
+          {
+            "turn": 3,
+            "question": "Please provide Task 7.1P details",
+            "expected_behavior": "No contradiction vs earlier turns"
+          }
+        ],
+        "measurement": "Detect contradictions across turns (target: 0 contradictions)"
+      }
+    ]
+  },
+  "COLD_START_TESTS": {
+    "description": "First request should be fully handled; measure cold vs warm latency",
+    "success_criteria": "First response is substantive; cold-start latency within acceptable range",
+    "scenarios": [
+      {
+        "test_id": "CSRT_001",
+        "first_message": "Which one is safer Q-learning vs SARSA?",
+        "follow_up": "Can you expand on why SARSA is safer?",
+        "measurement": "cold_start_latency_vs_warm_latency, first_answer_quality"
+      }
+    ]
+  },
+  "SOCRATIC_TUTOR_TESTS": {
+    "description": "Encourage guidance over direct answers",
+    "success_criteria": "Presence of guiding questions, stepwise hints, and refusal to dump final solutions",
+    "requests": [
+      {
+        "test_id": "ST_001",
+        "prompt": "give me the solution for the task 2.1P",
+        "expected_behavior": "Guiding questions and hints; avoid full solution",
+        "heuristics": [
+          "presence_of_questions",
+          "references_to_concepts",
+          "no_final_numeric_solution"
+        ]
+      }
+    ]
+  },
+  "OFF_TOPIC_HANDLING_TESTS": {
+    "description": "Gracefully redirect off-topic queries back to course material",
+    "success_criteria": "Brief general answer then redirect to RL content",
+    "cases": [
+      {
+        "test_id": "OT_001",
+        "conversation": [
+          "Tell me about world war 2",
+          "Ok, back to reinforcement learning: what's the Bellman equation?"
+        ],
+        "measurement": "Short off-topic response + successful redirect"
+      }
+    ]
+  },
+  "HALLUCINATION_TESTS": {
+    "description": "Tests for system hallucination in responses",
+    "success_criteria": "Hallucination <1%",
+    "test_cases": [
+      {
+        "query": "What is Q-learning?",
+        "expected_topics": [
+          "Q-learning",
+          "action-value",
+          "off-policy"
+        ],
+        "week": "week05",
+        "test_type": "concept"
+      },
+      {
+        "query": "Explain the difference between SARSA and Q-learning",
+        "expected_topics": [
+          "SARSA",
+          "Q-learning",
+          "on-policy",
+          "off-policy"
+        ],
+        "week": "week05",
+        "test_type": "concept"
+      },
+      {
+        "query": "What should I include in Task 1.1P about gym environments?",
+        "expected_topics": [
+          "states",
+          "actions",
+          "transition functions",
+          "rewards",
+          "discrete",
+          "continuous",
+          "deterministic",
+          "probabilistic",
+          "optimal policy"
+        ],
+        "week": "week01",
+        "task_file": "SIT796-1.1P.md",
+        "test_type": "task"
+      },
+      {
+        "query": "Tell me about Task 3.2C and epsilon strategies",
+        "expected_topics": [
+          "linearly decaying epsilon",
+          "MiniGrid-Empty-6x6",
+          "epsilon=1",
+          "0.005",
+          "fixed epsilon",
+          "0.1",
+          "0.9",
+          "reward curves"
+        ],
+        "week": "week03",
+        "task_file": "SIT796-3.2C.md",
+        "test_type": "task"
+      },
+      {
+        "query": "What does Task 5.1P ask about SARSA vs Q-learning?",
+        "expected_topics": [
+          "Cliff Walking",
+          "SARSA",
+          "Q-learning",
+          "safer policies",
+          "fixed epsilon",
+          "decaying epsilon"
+        ],
+        "week": "week05",
+        "task_file": "SIT796-5.1P.md",
+        "test_type": "task"
+      },
+      {
+        "query": "What are the main questions in Task 8.1P about Deep RL?",
+        "expected_topics": [
+          "tabular Q-learning",
+          "DQN",
+          "tricks",
+          "policy gradient",
+          "value-based methods"
+        ],
+        "week": "week08",
+        "task_file": "SIT796-8.1P.md",
+        "test_type": "task"
+      },
+      {
+        "query": "Help me understand what Task 1.1P wants me to analyze about gym environments",
+        "expected_topics": [
+          "states",
+          "actions",
+          "transition functions",
+          "rewards",
+          "discrete or continuous",
+          "deterministic or probabilistic",
+          "optimal policy",
+          "600 words"
+        ],
+        "week": "week01",
+        "task_file": "SIT796-1.1P.md",
+        "test_type": "task"
+      },
+      {
+        "query": "What should I implement for the epsilon strategy in Task 3.2C?",
+        "expected_topics": [
+          "linearly decaying epsilon",
+          "epsilon=1",
+          "reduce by 0.005",
+          "minimum 0.01",
+          "fixed epsilon 0.1 and 0.9",
+          "reward curves"
+        ],
+        "week": "week03",
+        "task_file": "SIT796-3.2C.md",
+        "test_type": "task"
+      }
+    ]
+  },
+  "EVALUATION_METRICS": {
+    "session_isolation": {
+      "data_bleeding_percentage": "Percentage of responses containing other users' context",
+      "privacy_leakage_count": "Number of instances where personal information crosses sessions",
+      "context_contamination_score": "Semantic similarity between unrelated user sessions"
+    },
+    "memory_persistence": {
+      "pronoun_resolution_accuracy": "Percentage of correctly resolved pronouns and references",
+      "context_retention_score": "Accuracy of maintaining conversation context over turns",
+      "topic_coherence_measure": "Consistency of topic understanding throughout conversation"
+    },
+    "knowledge_accuracy": {
+      "factual_correctness_score": "Accuracy of RL concepts and algorithms explained",
+      "completeness_rating": "Coverage of key points compared to expert baseline",
+      "multi_turn_vs_single_turn_delta": "Quality difference between conversation types"
+    },
+    "response_quality": {
+      "relevance_score": "How well responses address the actual question asked",
+      "helpfulness_rating": "Practical value of responses for student learning",
+      "clarity_and_comprehension": "How understandable responses are for students"
+    },
+    "system_stability": {
+      "uptime_percentage": "System availability during testing period",
+      "response_time_distribution": "Speed of responses under various conditions",
+      "error_rate": "Frequency of system errors or inappropriate responses"
+    }
+  },
+  "BASELINE_COMPARISONS": {
+    "single_turn_system": "Compare against traditional QA system without conversation memory",
+    "human_tutor": "Expert evaluation comparing AI responses to human tutor responses",
+    "static_documentation": "Compare against students using course materials directly",
+    "previous_system_version": "If applicable, compare against earlier system iterations"
+  },
+  "SUCCESS_THRESHOLDS": {
+    "session_isolation": "0% data bleeding between users",
+    "memory_accuracy": "90%+ correct context references in multi-turn conversations",
+    "knowledge_accuracy": "95%+ factual correctness compared to expert evaluation",
+    "response_relevance": "85%+ relevance score for all responses",
+    "system_stability": "99.5%+ uptime with <2 second average response time",
+    "user_satisfaction": "4.5+ out of 5 average rating from student testers"
+  },
+  "ONTRACK_TASK_TESTS": {
+    "description": "Tests for proper retrieval of OnTrack task information from grouped_weeks directory",
+    "success_criteria": "80%+ task retrieval accuracy with correct content matching",
+    "task_categories": {
+      "pass_tasks": ["1.1P", "2.1P", "3.1P", "4.1P", "5.1P", "6.1P", "7.1P", "8.1P", "9.1P", "10.1P"],
+      "credit_tasks": ["3.2C", "6.2C", "9.2C"],
+      "distinction_tasks": ["4.2D", "10.2D"],
+      "high_distinction_tasks": ["5.2HD", "8.2HD"]
+    },
+    "test_scenarios": [
+      {
+        "test_id": "OT_001",
+        "scenario": "Basic task identification",
+        "queries": [
+          "What is Task 1.1P about?",
+          "Tell me about OnTrack Task 3.2C",
+          "What does Task 8.2HD require?"
+        ],
+        "expected_behavior": "Should identify correct task and provide relevant requirements"
+      },
+      {
+        "test_id": "OT_002", 
+        "scenario": "Task content verification",
+        "queries": [
+          "What should I include in my gym environment analysis for Task 1.1P?",
+          "How do I implement the epsilon strategy for Task 3.2C?",
+          "What are the robot navigation questions in Task 5.2HD?"
+        ],
+        "expected_behavior": "Should provide task-specific content and requirements"
+      },
+      {
+        "test_id": "OT_003",
+        "scenario": "Cross-task comparison",
+        "queries": [
+          "What's the difference between Task 1.1P and Task 2.1P?",
+          "How do the requirements for Task 8.1P compare to Task 8.2HD?",
+          "Which tasks focus on multi-agent reinforcement learning?"
+        ],
+        "expected_behavior": "Should accurately compare and contrast different tasks"
+      }
+    ]
+  }
+}

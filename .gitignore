@@ -21,11 +21,8 @@ auto_rsync.sh
 _my_notes/
 
 # My test files and info
-_my_tests/
-measurement_system.py
-test_runner.py
-start_multi_for_testing.sh
-run_tests.py
+_my_tests/results/
+_my_tests/__pycache__/
 
 # My DB rebuild
 AI-Tutor/docling_Andrew.py

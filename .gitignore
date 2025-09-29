@@ -2,10 +2,6 @@
 __pycache__/
 *.pyc
 
-# Local development tools
-auto_rsync.sh
-start_watchmedo.sh
-
 # IDE/Editor specific
 .vscode/
 .idea/
@@ -18,3 +14,8 @@ _my_tests/__pycache__/
 # Personal configuration
 config.env
 *.local.env
+
+# Database files
+*.sqlite3
+AI-Tutor/RL_db_reference_1k_500/*/
+

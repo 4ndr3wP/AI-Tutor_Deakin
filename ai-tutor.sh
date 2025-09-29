@@ -69,15 +69,27 @@ start_backend() {
     return 1
 }
 
-# Start frontend with configured paths and credentials
 start_frontend() {
     log "🌐 Starting frontend in tmux..."
     tmux kill-session -t ai-frontend 2>/dev/null || true
     tmux new-session -d -s ai-frontend
-    tmux send-keys -t ai-frontend "ssh $USERNAME@$FRONTEND_SERVER" Enter
-    sleep 3
+
+    # SSH to frontend host non-interactively
+    tmux send-keys -t ai-frontend "ssh -o BatchMode=yes $USERNAME@$FRONTEND_SERVER" Enter
+    sleep 2
+
+    # Move to project directory
     tmux send-keys -t ai-frontend "cd $FRONTEND_DIR" Enter
-    tmux send-keys -t ai-frontend "npm run dev -- --host" Enter
+
+    # Load nvm and Node
+    tmux send-keys -t ai-frontend 'export NVM_DIR="$HOME/.nvm"' Enter
+    tmux send-keys -t ai-frontend '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' Enter
+    tmux send-keys -t ai-frontend 'nvm use 18' Enter
+
+    # Install deps if missing, then start
+    tmux send-keys -t ai-frontend '[ -d node_modules ] || npm install' Enter
+    tmux send-keys -t ai-frontend "npm run dev -- --host --port $FRONTEND_PORT" Enter
+
     success "Frontend starting at http://$FRONTEND_HOST:$FRONTEND_PORT"
 }
 
